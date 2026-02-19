@@ -1,9 +1,9 @@
 # Veil
 
-[![CI](https://github.com/Threatlabs-LLC/veilchat/actions/workflows/ci.yml/badge.svg)](https://github.com/Threatlabs-LLC/veilchat/actions/workflows/ci.yml)
+[![CI](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml/badge.svg)](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://github.com/Threatlabs-LLC/veilchat/pkgs/container/veilchat)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://github.com/Threatlabs-LLC/veil-public/pkgs/container/veilchat)
 
 **Enterprise LLM sanitization proxy** — use any LLM at work with full data protection.
 
@@ -16,6 +16,16 @@ LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
   ↓ LLM responds with placeholders
 User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 ```
+
+## How to Use Veil
+
+| | Free Self-Hosted | Cloud SaaS | Enterprise |
+|---|:---:|:---:|:---:|
+| **Get started** | `docker compose up` | [app.veilproxy.ai](https://app.veilproxy.ai) | Contact us |
+| **Hosting** | Your infrastructure | Managed by Threatlabs | Your infrastructure |
+| **Database** | SQLite (default) | PostgreSQL (managed) | PostgreSQL |
+| **Support** | Community (GitHub) | Email + docs | Priority SLA |
+| **Billing** | Free forever | Subscription | Annual license |
 
 ## Features
 
@@ -39,7 +49,7 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 - **Rate Limiting** — configurable per-endpoint rate limits
 - **Error Boundaries** — graceful error handling with toast notifications
 
-### Paid Tiers (license key unlocks)
+### Paid Tiers
 
 | Feature | Team | Business | Enterprise |
 |---------|:----:|:--------:|:----------:|
@@ -53,7 +63,9 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 | Custom NER models | — | — | Yes |
 | Priority support | — | — | Yes |
 
-> **How licensing works:** Same Docker image, same codebase. No license = Free tier. Drop a license key into Settings to unlock paid features. Offline validation — no phone-home.
+> **Self-hosted licensing:** Same Docker image, same codebase. No license = Free tier. Drop a license key into Settings to unlock paid features. Offline validation — no phone-home.
+>
+> **Cloud:** Sign up at [app.veilproxy.ai](https://app.veilproxy.ai) and upgrade directly from the billing page. No license keys needed.
 
 ## Architecture
 
@@ -82,16 +94,18 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 
 ## Quick Start
 
+> **Don't want to self-host?** Try [Veil Cloud](https://app.veilproxy.ai) — same features, fully managed.
+
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+ (for frontend development)
+- Node.js 22+ (for frontend development)
 
 ### Install & Run
 
 ```bash
-git clone https://github.com/Threatlabs-LLC/veilchat.git
-cd veilchat
+git clone https://github.com/Threatlabs-LLC/veil-public.git
+cd veil-public
 
 # Copy environment config
 cp .env.example .env

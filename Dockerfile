@@ -29,7 +29,7 @@ COPY pyproject.toml ./
 COPY backend/ ./backend/
 
 # Install base + optional NER deps
-RUN pip install --no-cache-dir -e ".[dev]" && \
+RUN pip install --no-cache-dir -e ".[dev,postgres]" && \
     if [ "$INSTALL_NER" = "true" ]; then \
         pip install --no-cache-dir -e ".[ner]" && \
         python -m spacy download en_core_web_md; \

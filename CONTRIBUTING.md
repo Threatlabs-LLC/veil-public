@@ -13,8 +13,8 @@ Thanks for your interest in contributing to Veil! This guide covers how to set u
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Threatlabs-LLC/veilchat.git
-cd veilchat
+git clone https://github.com/Threatlabs-LLC/veil-public.git
+cd veil-public
 
 # Backend
 pip install -e ".[dev]"

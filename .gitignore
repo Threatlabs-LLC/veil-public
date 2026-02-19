@@ -24,6 +24,10 @@ data/
 .env.local
 .env.*.local
 
+# Deploy secrets
+deploy/.env
+deploy/.env.*
+
 # License keys (NEVER commit private key)
 keys/private_key.pem
 
