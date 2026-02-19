@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { MessageSquarePlus, Shield, MessageSquare, Settings, SlidersHorizontal, Trash2, Clock, User, Search, Webhook, LogOut, ChevronDown, FileText } from 'lucide-react'
+import { MessageSquarePlus, MessageSquare, Settings, SlidersHorizontal, Trash2, Clock, User, Search, Webhook, LogOut, ChevronDown, CreditCard, FileText } from 'lucide-react'
 import { api } from '../api/client'
 
 interface ConversationItem {
@@ -42,11 +42,14 @@ export default function Sidebar() {
   const [sort, setSort] = useState<SortOption>('updated_desc')
   const [showSort, setShowSort] = useState(false)
   const [tier, setTier] = useState<string>('free')
+  const [cloudMode, setCloudMode] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
     api.getLicenseStatus().then(s => setTier(s.tier)).catch(() => {})
+    // Detect cloud mode by checking if billing endpoint exists
+    api.getSubscription().then(() => setCloudMode(true)).catch(() => {})
   }, [])
 
   const loadConversations = async (q?: string) => {
@@ -98,8 +101,21 @@ export default function Sidebar() {
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2 mb-4">
-          <Shield className="w-6 h-6 text-veil-500" />
-          <h1 className="text-lg font-semibold">Veil</h1>
+          <svg width="24" height="28" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="sb-s" x1="2" y1="2" x2="26" y2="32" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#4A5090"/><stop offset="0.5" stopColor="#5B6BC0"/><stop offset="1" stopColor="#7C8BF5"/>
+              </linearGradient>
+              <linearGradient id="sb-k" x1="10" y1="10" x2="18" y2="26" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#7C8BF5"/><stop offset="1" stopColor="#9AA5FF"/>
+              </linearGradient>
+            </defs>
+            <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" fill="url(#sb-s)" opacity="0.12"/>
+            <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" stroke="url(#sb-s)" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+            <circle cx="14" cy="14" r="3.5" stroke="url(#sb-k)" strokeWidth="1.5" fill="none"/>
+            <line x1="14" y1="17.5" x2="14" y2="24" stroke="url(#sb-k)" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <h1 className="text-base font-display font-semibold tracking-widest">VEIL<span className="font-light text-veil-500">PROXY</span></h1>
           {tier !== 'free' && (
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
               tier === 'enterprise' ? 'bg-amber-900/50 text-amber-300'
@@ -238,6 +254,17 @@ export default function Sidebar() {
           <Webhook className="w-4 h-4" />
           Webhooks
         </Link>
+        {cloudMode && (
+          <Link
+            to="/billing"
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+              location.pathname === '/billing' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            Billing
+          </Link>
+        )}
         <Link
           to="/settings"
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
@@ -267,7 +294,7 @@ export default function Sidebar() {
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>
-        <div className="text-xs text-gray-600 px-3 pt-1">Veil v0.1.0</div>
+        <div className="text-xs text-gray-600 px-3 pt-1 font-mono">VeilProxy v0.1.0</div>
       </div>
     </aside>
   )

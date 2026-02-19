@@ -31,7 +31,7 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 
 ### Core (Free — no license required)
 
-- **Automatic PII Detection** — regex, NER (Presidio/spaCy), and custom dictionary rules
+- **Automatic PII Detection** — 50+ regex patterns, NER (Presidio/spaCy), and custom dictionary rules
 - **Reversible Pseudonymization** — bidirectional mapping tables, scoped per conversation
 - **Policy Engine** — configurable per-entity actions: allow, redact, block, or warn
 - **API Gateway Mode** — drop-in `base_url` replacement for existing OpenAI/Anthropic code
@@ -41,7 +41,8 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 - **Custom Rules** — add org-specific regex and dictionary detection patterns (up to 5)
 - **Audit Trail** — full logging of every sanitization event (7-day retention)
 - **User Management** — JWT auth, user profiles, up to 3 users
-- **Conversation Management** — search, sort, rename, export (JSON/Markdown)
+- **Document Scanner** — upload PDF, DOCX, TXT, CSV, XLSX files for PII scanning or chat context
+- **Conversation Management** — search, sort, rename, export (JSON/CSV)
 - **Admin Dashboard** — usage analytics, entity stats, audit logs
 - **API Keys** — programmatic access with bcrypt-hashed keys
 - **Health Probes** — `/api/health/live` and `/api/health/ready` for Kubernetes
@@ -187,6 +188,8 @@ python -m spacy download en_core_web_md
 | Endpoint | Description |
 |---|---|
 | `POST /api/chat` | Chat with sanitization + SSE streaming |
+| `POST /api/chat/with-document` | Chat with file attachment (multipart) |
+| `POST /api/documents/scan` | Scan a document for PII (no LLM call) |
 | `POST /api/sanitize` | Sanitize text without LLM call (detection only) |
 | `POST /api/sanitize/batch` | Batch sanitize multiple texts |
 | `POST /v1/chat/completions` | OpenAI-compatible gateway (drop-in) |
@@ -212,7 +215,7 @@ python -m spacy download en_core_web_md
 
 Veil runs multiple detectors in parallel and merges results:
 
-1. **Regex Detector** — 20+ patterns: IPs, emails, credit cards (with Luhn), SSNs, phones, AWS keys, connection strings, MAC addresses, internal hostnames, usernames, file paths, Windows domains, and security log/SIEM fields
+1. **Regex Detector** — 50+ patterns: IPs, emails, credit cards (with Luhn), SSNs, phones, AWS keys, connection strings, MAC addresses, internal hostnames, usernames, file paths, Windows domains, and security log/SIEM fields
 2. **Presidio NER** — spaCy-backed named entity recognition for person names, organizations, addresses (optional)
 3. **Custom Rules** — org-specific regex and dictionary patterns from the admin UI
 
@@ -289,9 +292,10 @@ veilchat/
 │   │   ├── provider_keys.py # Provider API key resolution
 │   │   ├── usage.py        # Usage tracking
 │   │   ├── normalizer.py   # Text normalization
+│   │   ├── document.py    # Document text extraction (PDF, DOCX, TXT, CSV, XLSX)
 │   │   └── logging.py      # Structured JSON logging
 │   ├── detectors/      # PII detection engines
-│   │   ├── regex_detector.py    # 20+ regex patterns
+│   │   ├── regex_detector.py    # 50+ regex patterns
 │   │   ├── presidio_detector.py # spaCy NER (optional)
 │   │   ├── custom_rule_detector.py # User-defined rules
 │   │   └── registry.py         # Detector registration + overlap resolution
@@ -307,12 +311,12 @@ veilchat/
 │   │   ├── openai_compat.py # OpenAI + Ollama (compatible API)
 │   │   └── anthropic.py     # Anthropic Claude
 │   ├── db/             # Database session, seeding
-│   ├── tests/          # 346 tests
+│   ├── tests/          # 442 tests
 │   ├── config.py       # Environment config (Pydantic Settings)
 │   └── main.py         # App entrypoint
 ├── frontend/
 │   └── src/
-│       ├── pages/          # Home, Chat, Admin, Settings, Login, Profile, Webhooks
+│       ├── pages/          # Home, Chat, Admin, Settings, Login, Profile, Webhooks, Documents
 │       ├── components/     # Sidebar, Layout, Chat UI, Sanitization panel, ErrorBoundary, Toast
 │       ├── hooks/          # useChat custom hook
 │       └── api/client.ts   # TypeScript API client
@@ -344,15 +348,17 @@ Key variables:
 ## Tests
 
 ```bash
-# Run all tests (346 tests)
+# Run all tests (442 tests)
 python -m pytest backend/tests/ -v
 
 # Specific test modules
-python -m pytest backend/tests/test_detection_quality.py -v  # 90 detection tests
-python -m pytest backend/tests/test_security.py -v            # 25 security tests
-python -m pytest backend/tests/test_performance.py -v         # 15 performance benchmarks
-python -m pytest backend/tests/test_api.py -v                 # API integration tests
-python -m pytest backend/tests/test_core.py -v                # Core engine tests
+python -m pytest backend/tests/test_detection_quality.py -v    # 90 detection tests
+python -m pytest backend/tests/test_accuracy_benchmark.py -v   # 76 accuracy benchmark tests
+python -m pytest backend/tests/test_security.py -v             # 25 security tests
+python -m pytest backend/tests/test_performance.py -v          # 15 performance benchmarks
+python -m pytest backend/tests/test_api.py -v                  # API integration tests
+python -m pytest backend/tests/test_core.py -v                 # Core engine tests
+python -m pytest backend/tests/test_document.py -v             # Document extraction tests
 ```
 
 ## License

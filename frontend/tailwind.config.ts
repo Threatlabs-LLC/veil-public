@@ -6,17 +6,23 @@ const config: Config = {
     extend: {
       colors: {
         veil: {
-          50: '#f0f4ff',
-          100: '#dbe4ff',
-          200: '#bac8ff',
-          300: '#91a7ff',
-          400: '#748ffc',
-          500: '#5c7cfa',
-          600: '#4c6ef5',
-          700: '#4263eb',
-          800: '#3b5bdb',
-          900: '#364fc7',
+          50: '#f0f2ff',
+          100: '#dde1ff',
+          200: '#bac0ff',
+          300: '#9AA5FF',   // Glow
+          400: '#7C8BF5',   // Accent
+          500: '#5B6BC0',   // Blue (primary brand)
+          600: '#4A5090',   // Indigo
+          700: '#3A4080',
+          800: '#1A1F36',   // Navy
+          900: '#111527',   // Deep
+          950: '#0B0E17',   // Midnight
         },
+      },
+      fontFamily: {
+        display: ['Outfit', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
     },
   },

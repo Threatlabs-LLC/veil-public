@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -48,12 +47,25 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="w-full max-w-md p-8">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <Shield className="w-10 h-10 text-veil-500" />
-          <h1 className="text-3xl font-bold">Veil</h1>
+        <div className="flex flex-col items-center mb-8">
+          <svg width="48" height="56" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-4">
+            <defs>
+              <linearGradient id="lg-s" x1="2" y1="2" x2="26" y2="32" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#4A5090"/><stop offset="0.5" stopColor="#5B6BC0"/><stop offset="1" stopColor="#7C8BF5"/>
+              </linearGradient>
+              <linearGradient id="lg-k" x1="10" y1="10" x2="18" y2="26" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#7C8BF5"/><stop offset="1" stopColor="#9AA5FF"/>
+              </linearGradient>
+            </defs>
+            <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" fill="url(#lg-s)" opacity="0.12"/>
+            <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" stroke="url(#lg-s)" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+            <circle cx="14" cy="14" r="3.5" stroke="url(#lg-k)" strokeWidth="1.5" fill="none"/>
+            <line x1="14" y1="17.5" x2="14" y2="24" stroke="url(#lg-k)" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <h1 className="text-2xl font-display font-semibold tracking-[6px]">VEIL<span className="font-light text-veil-500">PROXY</span></h1>
         </div>
-        <p className="text-center text-gray-400 mb-8 text-sm">
-          Enterprise LLM sanitization proxy
+        <p className="text-center text-gray-400 mb-8 text-xs font-mono tracking-widest uppercase">
+          Enterprise LLM Sanitization Proxy
         </p>
 
         <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1">
