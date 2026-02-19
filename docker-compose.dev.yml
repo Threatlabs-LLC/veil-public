@@ -1,0 +1,41 @@
+# Development compose — hot reload for both backend and frontend
+# Usage: docker compose -f docker-compose.dev.yml up
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_NER: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./keys:/app/keys:ro
+    environment:
+      - VEILCHAT_DEBUG=true
+      - VEILCHAT_SECRET_KEY=${VEILCHAT_SECRET_KEY:-dev-secret-key}
+      - VEILCHAT_OPENAI_API_KEY=${VEILCHAT_OPENAI_API_KEY:-}
+      - VEILCHAT_ANTHROPIC_API_KEY=${VEILCHAT_ANTHROPIC_API_KEY:-}
+      - VEILCHAT_OLLAMA_BASE_URL=${VEILCHAT_OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      - VEILCHAT_CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+
+volumes:
+  frontend-node-modules:

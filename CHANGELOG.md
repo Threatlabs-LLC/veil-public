@@ -1,0 +1,75 @@
+# Changelog
+
+## v0.1.0 — Initial Release
+
+### Core Features
+- **PII Detection Engine**: 20+ regex patterns (SSN, credit card, email, IP, phone, AWS keys, connection strings, MAC addresses, hostnames, usernames, file paths, Windows domains, security log fields) + Presidio/spaCy NER (names, organizations, addresses) + custom org-specific rules
+- **Reversible Pseudonymization**: Bidirectional entity-placeholder mapping scoped per conversation, with consistent placeholders (same entity always maps to same placeholder)
+- **Policy Engine**: Per-entity-type actions (redact, block, warn, allow) with configurable priority, confidence thresholds, and severity levels
+- **Streaming SSE Rehydration**: Real-time token streaming with chunk-boundary buffering for seamless placeholder replacement
+- **3-Tier Overlap Resolution**: Custom rules > regex > NER priority system, with longest-span and highest-confidence tiebreakers
+- **Security Log / SIEM Detection**: Specialized patterns for Palo Alto, CrowdStrike, and other security appliance log formats — usernames, hostnames, domain backslash notation, KV pairs
+
+### API & Gateway
+- **OpenAI-Compatible Gateway**: Drop-in `/v1/chat/completions` endpoint — change `base_url` and go
+- **Sanitize API**: `POST /api/sanitize` and `POST /api/sanitize/batch` — detection-only endpoints for corpus testing, CI/CD integration, and benchmarking (no LLM call, no token cost)
+- **Multi-Provider Support**: OpenAI, Anthropic, and Ollama (fully air-gapped local models)
+- **REST API**: 30+ endpoints for chat, sanitize, conversations, rules, policies, admin, settings, webhooks, licensing
+- **API Key Authentication**: Bcrypt-hashed keys with per-key rate limits
+
+### Web UI
+- Chat interface with real-time sanitization panel and entity diff view
+- Admin dashboard with usage analytics, entity stats, and audit logs
+- Settings page for API keys, provider configuration, Ollama URL
+- Rules and policies management
+- Webhook configuration
+- User management and profiles
+- Conversation search, sort, rename, export (JSON/Markdown)
+- License management (activate/deactivate, tier badge)
+
+### Infrastructure
+- SQLite WAL (default) + PostgreSQL support
+- Multi-stage Docker build with NER support (build arg)
+- Docker Compose for production and development
+- Kubernetes deployment manifests
+- Caddy/Nginx reverse proxy configurations
+- Structured JSON logging
+- Health probes (`/live`, `/ready`) for Kubernetes
+- Rate limiting middleware (sliding window)
+- Event bus with webhook delivery
+
+### Licensing
+- Open-core model: Free tier with full features, paid tiers unlock higher limits
+- RS256 JWT offline license validation (no phone-home)
+- License key generator CLI
+- Feature gating via FastAPI dependency injection
+- Tier definitions: Free / Team / Business / Enterprise
+
+### Testing & Quality
+- 346 tests: detection quality (90), security (25), performance (15), API (50+), core engine, policy engine, rate limiting
+- Detection benchmarks: <5ms regex, <500ms full pipeline with NER
+- Security tests: SQL injection, XSS, PII leak prevention, auth enforcement
+- Throughput: 500+ small msgs/sec, 100+ medium msgs/sec
+- Tested against real-world Palo Alto firewall and CrowdStrike EDR log samples
+
+### Detection Quality Improvements
+- **Phone false positive reduction**: Requires formatting characters (parens, dashes, dots, spaces) — bare digit sequences no longer match as phone numbers
+- **NER false positive reduction**: Max-length filters (PERSON 60 chars, ORG/LOCATION 100 chars), all-digit rejection for PERSON/ORG, removed UK_NHS entity type
+- **Overlap resolution redesign**: 3-tier priority system (custom > regex > NER) prevents broad NER spans from eating precise regex matches
+- **Security log patterns**: Username KV pairs (`user=`, `src_user=`, `domain=`), appliance hostnames, Windows domain\user notation, file paths
+- **Seed data fix**: Built-in phone pattern now requires formatting to match (consistent with built-in detector)
+
+### UI Polish
+- **Sidebar polling**: Replaced 5-second interval with event-driven refresh (route change, window focus) + 30-second lazy fallback
+
+### Documentation
+- README with quick-start, architecture diagram, full API reference
+- CONTRIBUTING.md, CODE_OF_CONDUCT.md
+- Architecture guide (docs/ARCHITECTURE.md)
+- Deployment guide (docs/DEPLOYMENT.md) — Docker, K8s, reverse proxy, env reference
+- API reference (docs/API.md) — all endpoints with curl examples
+- GitHub issue/PR templates
+
+### CI/CD
+- GitHub Actions CI: Python 3.11+3.12 matrix, frontend build, Docker push
+- Release workflow: tag-triggered, ghcr.io push, auto-generated changelog

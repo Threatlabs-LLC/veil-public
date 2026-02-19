@@ -1,0 +1,29 @@
+services:
+  veilchat:
+    build:
+      context: .
+      args:
+        INSTALL_NER: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - veilchat-data:/app/data
+      - ./keys/public_key.pem:/app/keys/public_key.pem:ro
+    environment:
+      - VEILCHAT_DEBUG=false
+      - VEILCHAT_SECRET_KEY=${VEILCHAT_SECRET_KEY:-change-me-in-production}
+      - VEILCHAT_OPENAI_API_KEY=${VEILCHAT_OPENAI_API_KEY:-}
+      - VEILCHAT_ANTHROPIC_API_KEY=${VEILCHAT_ANTHROPIC_API_KEY:-}
+      - VEILCHAT_OLLAMA_BASE_URL=${VEILCHAT_OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      - VEILCHAT_LICENSE_PUBLIC_KEY_PATH=/app/keys/public_key.pem
+      - VEILCHAT_CORS_ORIGINS=["http://localhost:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  veilchat-data:

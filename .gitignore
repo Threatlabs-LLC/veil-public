@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# Data
+data/
+*.db
+
+# Environment
+.env
+.env~
+.env.un~
+..env.un~
+.env.local
+.env.*.local
+
+# License keys (NEVER commit private key)
+keys/private_key.pem
+
+# Internal docs (keep in private repo only)
+docs/GTM_PLAN.md
+docs/marketing/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

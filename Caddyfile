@@ -1,0 +1,18 @@
+{
+    # Global options
+    admin off
+}
+
+:80 {
+    # API routes → FastAPI backend
+    handle /api/* {
+        reverse_proxy veilchat:8000
+    }
+
+    # Everything else → static frontend
+    handle {
+        root * /srv/static
+        try_files {path} /index.html
+        file_server
+    }
+}
