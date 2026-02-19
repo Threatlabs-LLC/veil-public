@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { User, Save, Lock, Mail, Shield } from 'lucide-react'
+import { User, Save, Lock, Mail, ShieldCheck } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -133,7 +133,7 @@ export default function Profile() {
                 <div className="font-medium text-lg">{profile.display_name || profile.email}</div>
                 <div className="text-sm text-gray-400">{profile.email}</div>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <Shield className="w-3 h-3 text-veil-400" />
+                  <ShieldCheck className="w-3 h-3 text-veil-400" />
                   <span className="text-xs text-veil-400 capitalize">{profile.role}</span>
                 </div>
               </div>

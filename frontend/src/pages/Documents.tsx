@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { FileUp, FileText, Shield, Upload, X, AlertTriangle, CheckCircle } from 'lucide-react'
+import { FileUp, FileText, ShieldCheck, Upload, X, AlertTriangle, CheckCircle } from 'lucide-react'
 import { api } from '../api/client'
 
 const ACCEPTED_TYPES = '.pdf,.docx,.txt,.csv,.xlsx'
@@ -231,7 +231,7 @@ export default function Documents() {
                 {result.entity_count > 0 && (
                   <div className="bg-gray-800/40 border border-gray-800 rounded-xl p-4">
                     <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-veil-400" />
+                      <ShieldCheck className="w-4 h-4 text-veil-400" />
                       Detection Summary
                     </h3>
                     <div className="flex flex-wrap gap-2">

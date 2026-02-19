@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Shield, Pencil, Check, Download } from 'lucide-react'
+import { Pencil, Check, Download } from 'lucide-react'
 import { api } from '../api/client'
 import { useChat, ChatMessage as ChatMsg } from '../hooks/useChat'
 import ChatInput from '../components/chat/ChatInput'
@@ -99,7 +99,20 @@ export default function Chat() {
       <div className="flex-1 flex flex-col">
         <header className="h-14 border-b border-gray-800 flex items-center justify-between px-4">
           <div className="flex items-center gap-2 min-w-0">
-            <Shield className="w-5 h-5 text-veil-500 shrink-0" />
+            <svg width="18" height="22" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+              <defs>
+                <linearGradient id="ch-s" x1="2" y1="2" x2="26" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stopColor="#4A5090"/><stop offset="0.5" stopColor="#5B6BC0"/><stop offset="1" stopColor="#7C8BF5"/>
+                </linearGradient>
+                <linearGradient id="ch-k" x1="10" y1="10" x2="18" y2="26" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stopColor="#7C8BF5"/><stop offset="1" stopColor="#9AA5FF"/>
+                </linearGradient>
+              </defs>
+              <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" fill="url(#ch-s)" opacity="0.12"/>
+              <path d="M14 2L2 7V17C2 25 8 30 14 32C20 30 26 25 26 17V7L14 2Z" stroke="url(#ch-s)" strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+              <circle cx="14" cy="14" r="3.5" stroke="url(#ch-k)" strokeWidth="1.5" fill="none"/>
+              <line x1="14" y1="17.5" x2="14" y2="24" stroke="url(#ch-k)" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
             {editingTitle ? (
               <form onSubmit={(e) => { e.preventDefault(); handleRename() }} className="flex items-center gap-1">
                 <input

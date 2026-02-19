@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, Save, Key, Cpu, SlidersHorizontal, Plus, Trash2, Copy, Check, AlertTriangle, Building, Award, Upload, X } from 'lucide-react'
+import { Save, Key, Cpu, SlidersHorizontal, Plus, Trash2, Copy, Check, AlertTriangle, Building, Award, Upload, X, ShieldCheck } from 'lucide-react'
 import { api } from '../api/client'
 import type { ApiKeyData } from '../api/client'
 
@@ -152,7 +152,7 @@ export default function Settings() {
           {/* Sanitization */}
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-gray-400" />
+              <ShieldCheck className="w-4 h-4 text-gray-400" />
               <h2 className="text-lg font-semibold">Sanitization</h2>
             </div>
             <div className="space-y-4">
@@ -203,7 +203,7 @@ export default function Settings() {
           {/* License */}
           <LicenseSection />
 
-          {/* Veil API Keys */}
+          {/* VeilProxy API Keys */}
           <ApiKeysSection />
         </div>
       </div>
@@ -514,7 +514,7 @@ function ApiKeysSection() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Key className="w-4 h-4 text-gray-400" />
-          <h2 className="text-lg font-semibold">Veil API Keys</h2>
+          <h2 className="text-lg font-semibold">VeilProxy API Keys</h2>
         </div>
         <button onClick={() => { setShowCreate(true); setNewKey(null); setError('') }}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-veil-600 hover:bg-veil-700 rounded text-sm transition-colors">
@@ -522,7 +522,7 @@ function ApiKeysSection() {
         </button>
       </div>
       <p className="text-sm text-gray-400 mb-4">
-        Use these keys to authenticate with the Veil gateway API at <code className="text-xs bg-gray-800 px-1.5 py-0.5 rounded">/v1/chat/completions</code>
+        Use these keys to authenticate with the VeilProxy gateway API at <code className="text-xs bg-gray-800 px-1.5 py-0.5 rounded">/v1/chat/completions</code>
       </p>
 
       {error && <p className="text-red-400 text-sm mb-3">{error}</p>}

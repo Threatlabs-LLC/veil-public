@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Shield, Activity, Users, FileText, AlertTriangle,
+  Activity, Users, FileText, AlertTriangle, BarChart3,
   Database, Eye, Clock, TrendingUp,
   Plus, Pencil, Trash2, X, Power, UserPlus, Copy, Check
 } from 'lucide-react'
@@ -16,7 +16,7 @@ export default function Admin() {
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header */}
       <header className="h-14 border-b border-gray-800 flex items-center px-4 gap-4">
-        <Shield className="w-5 h-5 text-veil-500" />
+        <BarChart3 className="w-5 h-5 text-veil-500" />
         <span className="font-medium">Admin Dashboard</span>
         <nav className="flex gap-1 ml-4">
           {(['overview', 'usage', 'rules', 'policies', 'users', 'audit'] as Tab[]).map((t) => (
@@ -47,7 +47,7 @@ export default function Admin() {
 }
 
 function StatCard({ label, value, icon: Icon, color = 'text-veil-500' }: {
-  label: string; value: string | number; icon: typeof Shield; color?: string
+  label: string; value: string | number; icon: typeof BarChart3; color?: string
 }) {
   return (
     <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4">

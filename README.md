@@ -1,4 +1,4 @@
-# Veil
+# VeilProxy
 
 [![CI](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml/badge.svg)](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -7,17 +7,17 @@
 
 **Enterprise LLM sanitization proxy** — use any LLM at work with full data protection.
 
-Veil sits between your users and LLM providers, automatically detecting and replacing sensitive data (PII, secrets, internal hostnames) with reversible placeholders before it ever reaches the model. Responses are rehydrated transparently, so users see the original data while the LLM never does.
+VeilProxy sits between your users and LLM providers, automatically detecting and replacing sensitive data (PII, secrets, internal hostnames) with reversible placeholders before it ever reaches the model. Responses are rehydrated transparently, so users see the original data while the LLM never does.
 
 ```
 User: "John Smith at john@acme.com called from 192.168.1.50"
-  ↓ Veil detects & replaces
+  ↓ VeilProxy detects & replaces
 LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
   ↓ LLM responds with placeholders
 User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 ```
 
-## How to Use Veil
+## How to Use VeilProxy
 
 | | Free Self-Hosted | Cloud SaaS | Enterprise |
 |---|:---:|:---:|:---:|
@@ -73,7 +73,7 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 
 ```
 ┌─────────────┐     ┌──────────────────────────────────────┐     ┌──────────┐
-│  Web Chat   │     │              Veil Proxy                │     │  OpenAI  │
+│  Web Chat   │     │             VeilProxy                 │     │  OpenAI  │
 │     UI      │────▶│                                      │────▶│ Anthropic│
 │             │◀────│  Detect → Policy → Sanitize → Forward │◀────│  Ollama  │
 │  Settings   │     │  ◀── Rehydrate ◀── Stream response   │     │          │
@@ -96,7 +96,7 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 
 ## Quick Start
 
-> **Don't want to self-host?** Try [Veil Cloud](https://app.veilproxy.ai) — same features, fully managed.
+> **Don't want to self-host?** Try [VeilProxy Cloud](https://app.veilproxy.ai) — same features, fully managed.
 
 ### Prerequisites
 
@@ -140,7 +140,7 @@ Visit `http://localhost:8000` — register your first user, who becomes the org 
 
 ### Use the Gateway API
 
-Point any OpenAI-compatible SDK at Veil — no code changes needed:
+Point any OpenAI-compatible SDK at VeilProxy — no code changes needed:
 
 ```python
 from openai import OpenAI
@@ -155,7 +155,7 @@ response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Review John Smith's config at 192.168.1.50"}]
 )
-# PII was sanitized before reaching OpenAI, then rehydrated in the response
+# VeilProxy sanitized PII before it reached OpenAI, then rehydrated the response
 print(response.choices[0].message.content)
 ```
 
@@ -163,14 +163,14 @@ Works with any tool that supports custom OpenAI base URLs: LangChain, LlamaIndex
 
 ### Local Models with Ollama
 
-Veil works fully air-gapped with Ollama — no cloud API keys needed:
+VeilProxy works fully air-gapped with Ollama — no cloud API keys needed:
 
 ```bash
 # Start Ollama (separate process)
 ollama serve
 ollama pull llama3.2
 
-# Veil auto-detects Ollama at localhost:11434
+# VeilProxy auto-detects Ollama at localhost:11434
 # Or configure a custom URL in Settings > Ollama Base URL
 ```
 
@@ -213,7 +213,7 @@ python -m spacy download en_core_web_md
 
 ## Detection Pipeline
 
-Veil runs multiple detectors in parallel and merges results:
+VeilProxy runs multiple detectors in parallel and merges results:
 
 1. **Regex Detector** — 50+ patterns: IPs, emails, credit cards (with Luhn), SSNs, phones, AWS keys, connection strings, MAC addresses, internal hostnames, usernames, file paths, Windows domains, and security log/SIEM fields
 2. **Presidio NER** — spaCy-backed named entity recognition for person names, organizations, addresses (optional)
@@ -236,7 +236,7 @@ Default policies block SSNs and credit cards, redact everything else. Fully conf
 
 ## Licensing
 
-Veil uses an open-core model: the full-featured Free tier runs without any license. Paid tiers unlock higher limits and enterprise features.
+VeilProxy uses an open-core model: the full-featured Free tier runs without any license. Paid tiers unlock higher limits and enterprise features.
 
 **For self-hosted customers:**
 ```bash

@@ -135,7 +135,7 @@ export default function Webhooks() {
             <div>
               <h2 className="text-lg font-semibold">Webhook Endpoints</h2>
               <p className="text-sm text-gray-400 mt-0.5">
-                Receive real-time notifications when Veil detects PII, policy violations, or other events.
+                Receive real-time notifications when VeilProxy detects PII, policy violations, or other events.
               </p>
             </div>
             <button
