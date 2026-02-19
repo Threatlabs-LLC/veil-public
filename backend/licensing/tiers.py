@@ -25,7 +25,7 @@ FEATURE_PRIORITY_SUPPORT = "priority_support"
 @dataclass(frozen=True)
 class TierDefinition:
     name: str
-    level: int  # 0=community, 1=team, 2=business, 3=enterprise
+    level: int  # 0=free, 1=solo, 2=team, 3=business, 4=enterprise
     max_users: int
     max_custom_rules: int
     max_webhooks: int
@@ -47,9 +47,22 @@ TIERS: dict[str, TierDefinition] = {
         gateway_rate_limit=120,
         features=frozenset(),
     ),
+    "solo": TierDefinition(
+        name="Solo",
+        level=1,
+        max_users=1,
+        max_custom_rules=10,
+        max_webhooks=1,
+        audit_retention_days=30,
+        api_rate_limit=120,
+        gateway_rate_limit=240,
+        features=frozenset({
+            FEATURE_CUSTOM_RULES,
+        }),
+    ),
     "team": TierDefinition(
         name="Team",
-        level=1,
+        level=2,
         max_users=25,
         max_custom_rules=100,
         max_webhooks=5,
@@ -66,7 +79,7 @@ TIERS: dict[str, TierDefinition] = {
     ),
     "business": TierDefinition(
         name="Business",
-        level=2,
+        level=3,
         max_users=200,
         max_custom_rules=500,
         max_webhooks=20,
@@ -85,7 +98,7 @@ TIERS: dict[str, TierDefinition] = {
     ),
     "enterprise": TierDefinition(
         name="Enterprise",
-        level=3,
+        level=4,
         max_users=999999,
         max_custom_rules=999999,
         max_webhooks=100,

@@ -574,13 +574,14 @@ class TestLicensing:
         assert data["max_users"] >= 1
 
     async def test_list_tiers(self, new_client, auth_headers):
-        """List tiers should return all 4 tiers."""
+        """List tiers should return all 5 tiers."""
         res = await new_client.get("/api/licensing/tiers", headers=auth_headers)
         assert res.status_code == 200
         data = res.json()
-        assert len(data) == 4
+        assert len(data) == 5
         tier_ids = [t["id"] for t in data]
         assert "free" in tier_ids
+        assert "solo" in tier_ids
         assert "team" in tier_ids
         assert "business" in tier_ids
         assert "enterprise" in tier_ids

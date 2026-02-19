@@ -51,17 +51,18 @@ User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 
 ### Paid Tiers
 
-| Feature | Team | Business | Enterprise |
-|---------|:----:|:--------:|:----------:|
-| Users | 25 | 200 | Unlimited |
-| Custom rules | 100 | 500 | Unlimited |
-| Webhooks / SIEM | 5 | 20 | 100 |
-| Audit retention | 90 days | 1 year | 2 years |
-| SSO (SAML/OIDC) | Yes | Yes | Yes |
-| HIPAA compliance | — | Yes | Yes |
-| Data residency | — | Yes | Yes |
-| Custom NER models | — | — | Yes |
-| Priority support | — | — | Yes |
+| Feature | Solo ($9/mo) | Team ($29/user/mo) | Business ($69/user/mo) | Enterprise |
+|---------|:----:|:----:|:--------:|:----------:|
+| Users | 1 | 25 | 200 | Unlimited |
+| Custom rules | 10 | 100 | 500 | Unlimited |
+| Webhooks / SIEM | 1 | 5 | 20 | 100 |
+| Audit retention | 30 days | 90 days | 1 year | 2 years |
+| Multi-provider | — | Yes | Yes | Yes |
+| SSO (SAML/OIDC) | — | Yes | Yes | Yes |
+| HIPAA compliance | — | — | Yes | Yes |
+| Data residency | — | — | Yes | Yes |
+| Custom NER models | — | — | — | Yes |
+| Priority support | — | — | — | Yes |
 
 > **Self-hosted licensing:** Same Docker image, same codebase. No license = Free tier. Drop a license key into Settings to unlock paid features. Offline validation — no phone-home.
 >
