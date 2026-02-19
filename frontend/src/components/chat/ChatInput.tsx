@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Paperclip, Send, Square, X } from 'lucide-react'
 
 const ACCEPTED_TYPES = '.pdf,.docx,.txt,.csv,.xlsx'
+const ACCEPTED_EXTENSIONS = ['pdf', 'docx', 'txt', 'csv', 'xlsx']
 
 interface Props {
   onSend: (message: string, file?: File) => void
@@ -12,6 +13,7 @@ interface Props {
 export default function ChatInput({ onSend, isLoading, onStop }: Props) {
   const [input, setInput] = useState('')
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -60,6 +62,30 @@ export default function ChatInput({ onSend, isLoading, onStop }: Props) {
     setAttachedFile(null)
   }
 
+  const isAcceptedFile = (file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    return ext ? ACCEPTED_EXTENSIONS.includes(ext) : false
+  }
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file && isAcceptedFile(file)) {
+      setAttachedFile(file)
+    }
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }, [])
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -67,7 +93,12 @@ export default function ChatInput({ onSend, isLoading, onStop }: Props) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-2">
+    <div
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      className={`bg-gray-800 rounded-xl p-2 transition-colors ${isDragging ? 'ring-2 ring-veil-500 bg-veil-900/20' : ''}`}
+    >
       {attachedFile && (
         <div className="flex items-center gap-2 px-2 py-1.5 mb-1.5 bg-gray-700/50 rounded-lg text-xs text-gray-300">
           <Paperclip className="w-3.5 h-3.5 text-veil-400 shrink-0" />

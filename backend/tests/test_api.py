@@ -20,6 +20,41 @@ async def register_user(client: AsyncClient, email="test@example.com",
     return res.json()
 
 
+async def _upgrade_org_tier(client: AsyncClient, token: str, tier: str = "team"):
+    """Upgrade the registered user's org to a higher tier via internal DB access.
+
+    Routes are tier-gated (rules need solo+, audit needs team+, etc.), so
+    tests that exercise those routes need a non-free org.
+    """
+    from backend.db.session import get_db
+    from backend.main import app
+
+    # Get the overridden DB dependency
+    override = app.dependency_overrides.get(get_db)
+    if override:
+        gen = override()
+        db = await gen.__anext__()
+        try:
+            from sqlalchemy import select
+            from backend.models.user import User
+            from backend.models.organization import Organization
+            from jose import jwt
+            from backend.config import settings
+
+            payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+            user = await db.get(User, payload["sub"])
+            if user:
+                org = await db.get(Organization, user.organization_id)
+                if org:
+                    org.tier = tier
+                    await db.commit()
+        finally:
+            try:
+                await gen.__anext__()
+            except StopAsyncIteration:
+                pass
+
+
 def auth_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
@@ -96,7 +131,9 @@ class TestAuthMe:
 class TestRulesAPI:
     async def _setup(self, client) -> tuple[str, dict]:
         data = await register_user(client, email=f"rules-{id(self)}@test.com")
-        return data["access_token"], data
+        token = data["access_token"]
+        await _upgrade_org_tier(client, token, "solo")
+        return token, data
 
     async def test_list_rules(self, client):
         token, _ = await self._setup(client)
@@ -299,7 +336,9 @@ class TestSettingsAPI:
 class TestAdminAPI:
     async def _setup(self, client) -> str:
         data = await register_user(client, email=f"admin-{id(self)}@test.com")
-        return data["access_token"]
+        token = data["access_token"]
+        await _upgrade_org_tier(client, token, "team")
+        return token
 
     async def test_dashboard(self, client):
         token = await self._setup(client)

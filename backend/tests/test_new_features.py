@@ -54,8 +54,11 @@ async def new_client(new_db_engine):
 
 
 @pytest.fixture
-async def auth_headers(new_client):
-    """Register a user and return auth headers."""
+async def auth_headers(new_client, new_db_engine):
+    """Register a user and return auth headers.
+
+    Upgrades the org to 'team' tier so feature-gated endpoints are accessible.
+    """
     res = await new_client.post("/api/auth/register", json={
         "email": "test@example.com",
         "password": "testpass123",
@@ -64,15 +67,53 @@ async def auth_headers(new_client):
     })
     assert res.status_code == 200
     token = res.json()["access_token"]
+
+    # Upgrade org to team tier
+    session_factory = async_sessionmaker(
+        new_db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with session_factory() as db:
+        from sqlalchemy import select
+        from backend.models.organization import Organization
+        result = await db.execute(select(Organization).limit(1))
+        org = result.scalar_one()
+        org.tier = "team"
+        await db.commit()
+
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
-async def team_client(new_db_engine):
+async def free_auth_headers(new_client):
+    """Register a user at free tier and return auth headers.
+
+    Used by tests that verify free-tier gating (e.g. webhook blocked on community).
+    """
+    res = await new_client.post("/api/auth/register", json={
+        "email": "free@example.com",
+        "password": "testpass123",
+        "display_name": "Free User",
+        "org_name": "Free Org",
+    })
+    assert res.status_code == 200
+    token = res.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+async def team_client(new_db_engine, monkeypatch):
     """Client with a team-tier org for testing paid features."""
     from backend.db.session import get_db
     from backend.main import app
     from backend.middleware.rate_limit import RateLimitMiddleware
+
+    # Bypass SSRF validator in tests (DNS resolution fails for fake hostnames)
+    import backend.api.webhooks as webhooks_mod
+    import backend.api.settings as settings_mod
+    monkeypatch.setattr(
+        "backend.core.url_validator.is_safe_url",
+        lambda url: (True, "OK"),
+    )
 
     session_factory = async_sessionmaker(
         new_db_engine, class_=AsyncSession, expire_on_commit=False
@@ -254,9 +295,9 @@ class TestWebhooks:
         # then we need another way. Best approach: set tier directly in test fixture.
         pass
 
-    async def test_create_blocked_on_community(self, new_client, auth_headers):
+    async def test_create_blocked_on_community(self, new_client, free_auth_headers):
         """Community tier cannot create webhooks."""
-        res = await new_client.post("/api/webhooks", headers=auth_headers, json={
+        res = await new_client.post("/api/webhooks", headers=free_auth_headers, json={
             "name": "Slack Alert",
             "url": "https://hooks.example.com/test",
             "format": "slack",
@@ -540,8 +581,13 @@ class TestOllamaIntegration:
         assert "ollama_base_url" in data
         assert "11434" in data["ollama_base_url"]
 
-    async def test_settings_update_ollama_base_url(self, new_client, auth_headers):
+    async def test_settings_update_ollama_base_url(self, new_client, auth_headers, monkeypatch):
         """Settings PATCH should accept ollama_base_url."""
+        # Bypass SSRF validator (DNS resolution fails for fake hostnames in tests)
+        monkeypatch.setattr(
+            "backend.core.url_validator.is_safe_url",
+            lambda url: (True, "OK"),
+        )
         res = await new_client.patch("/api/settings", headers=auth_headers, json={
             "ollama_base_url": "http://remote-ollama:11434/v1",
         })
@@ -563,9 +609,9 @@ class TestOllamaIntegration:
 # --- Licensing Tests ---
 
 class TestLicensing:
-    async def test_get_license_status(self, new_client, auth_headers):
-        """License status should return community tier by default."""
-        res = await new_client.get("/api/licensing/status", headers=auth_headers)
+    async def test_get_license_status(self, new_client, free_auth_headers):
+        """License status should return free tier by default."""
+        res = await new_client.get("/api/licensing/status", headers=free_auth_headers)
         assert res.status_code == 200
         data = res.json()
         assert data["tier"] == "free"
@@ -591,7 +637,7 @@ class TestLicensing:
         res = await new_client.get("/api/licensing/tiers", headers=auth_headers)
         data = res.json()
         levels = [t["level"] for t in sorted(data, key=lambda t: t["level"])]
-        assert levels == [0, 1, 2, 3]
+        assert levels == [0, 1, 2, 3, 4]
 
     async def test_activate_without_public_key_fails(self, new_client, auth_headers):
         """Activating a license without a public key configured should fail."""
@@ -612,9 +658,11 @@ class TestLicensing:
         from backend.licensing.tiers import TIERS, get_tier, tier_at_least, tier_has_feature, FEATURE_WEBHOOKS
 
         assert get_tier("free").level == 0
-        assert get_tier("team").level == 1
-        assert get_tier("enterprise").level == 3
-        assert get_tier("nonexistent").level == 0  # falls back to community
+        assert get_tier("solo").level == 1
+        assert get_tier("team").level == 2
+        assert get_tier("business").level == 3
+        assert get_tier("enterprise").level == 4
+        assert get_tier("nonexistent").level == 0  # falls back to free
 
         assert tier_at_least("team", "free") is True
         assert tier_at_least("free", "team") is False
@@ -623,9 +671,9 @@ class TestLicensing:
         assert tier_has_feature("free", FEATURE_WEBHOOKS) is False
         assert tier_has_feature("team", FEATURE_WEBHOOKS) is True
 
-    async def test_webhook_create_gated_on_community(self, new_client, auth_headers):
+    async def test_webhook_create_gated_on_community(self, new_client, free_auth_headers):
         """Community tier should not be able to create webhooks (feature gated)."""
-        res = await new_client.post("/api/webhooks", headers=auth_headers, json={
+        res = await new_client.post("/api/webhooks", headers=free_auth_headers, json={
             "name": "Test",
             "url": "https://example.com/hook",
             "event_types": ["entity.detected"],

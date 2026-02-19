@@ -43,12 +43,15 @@ async def db(db_engine):
 
 @pytest.fixture
 async def seeded_org(db):
-    """Create an org + admin user, return (org, user)."""
+    """Create an org + admin user, return (org, user).
+
+    Defaults to 'team' tier so most feature-gated routes work in tests.
+    """
     from backend.models.organization import Organization
     from backend.models.user import User
     from backend.api.auth import _hash_password
 
-    org = Organization(name="Test Org", slug="test-org", tier="free")
+    org = Organization(name="Test Org", slug="test-org", tier="team")
     db.add(org)
     await db.flush()
 
