@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
 from backend.db.session import get_db
+from backend.licensing.dependencies import require_feature
+from backend.licensing.tiers import FEATURE_ADVANCED_AUDIT, get_tier
 from backend.models.audit import AuditLog
 from backend.models.conversation import Conversation, Message
 from backend.models.entity import Entity, MappingSession
@@ -270,7 +272,8 @@ async def get_usage(
     }
 
 
-@router.get("/entities")
+@router.get("/entities",
+            dependencies=[Depends(require_feature(FEATURE_ADVANCED_AUDIT))])
 async def get_entity_stats(
     days: int = Query(30, ge=1, le=365),
     user: User = Depends(get_current_user),
@@ -426,13 +429,23 @@ async def invite_user(
     if not org:
         raise HTTPException(404, "Organization not found")
 
-    # Check user limit
+    # Check user limit against tier definition
+    tier_def = get_tier(org.tier)
     result = await db.execute(
         select(func.count(User.id)).where(User.organization_id == user.organization_id)
     )
     current_count = result.scalar() or 0
-    if current_count >= org.max_users:
-        raise HTTPException(400, f"Organization user limit reached ({org.max_users})")
+    if current_count >= tier_def.max_users:
+        raise HTTPException(
+            403,
+            {
+                "error": "user_limit_reached",
+                "message": f"User limit reached ({tier_def.max_users} on {tier_def.name} plan). Upgrade to add more users.",
+                "current_count": current_count,
+                "max_users": tier_def.max_users,
+                "current_tier": org.tier,
+            },
+        )
 
     # Check email uniqueness
     result = await db.execute(select(User).where(User.email == body.email))
@@ -465,7 +478,8 @@ async def invite_user(
     }
 
 
-@router.get("/audit")
+@router.get("/audit",
+            dependencies=[Depends(require_feature(FEATURE_ADVANCED_AUDIT))])
 async def query_audit_logs(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

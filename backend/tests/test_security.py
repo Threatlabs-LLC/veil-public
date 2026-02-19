@@ -315,28 +315,30 @@ class TestRateLimiting:
 
     @pytest.mark.asyncio
     async def test_auth_brute_force_protection(self):
-        """Auth endpoint should have lower rate limit (10 rpm)."""
+        """Auth endpoint should have fixed lower rate limit (10 rpm) regardless of tier."""
         from backend.middleware.rate_limit import RateLimitMiddleware
 
         mw = RateLimitMiddleware(app=None, enabled=True)
-        assert mw._get_limit("/api/auth/login") == 10
-        assert mw._get_limit("/api/auth/register") == 10
+        assert mw._get_limit("/api/auth/login", "free") == 10
+        assert mw._get_limit("/api/auth/register", "enterprise") == 10
 
     @pytest.mark.asyncio
     async def test_gateway_higher_limit(self):
-        """Gateway endpoint should have higher rate limit."""
+        """Gateway endpoint should use tier's gateway rate limit."""
         from backend.middleware.rate_limit import RateLimitMiddleware
+        from backend.licensing.tiers import get_tier
 
         mw = RateLimitMiddleware(app=None, enabled=True)
-        assert mw._get_limit("/v1/chat/completions") == 120
+        assert mw._get_limit("/v1/chat/completions", "free") == get_tier("free").gateway_rate_limit
 
     @pytest.mark.asyncio
     async def test_default_api_limit(self):
-        """Default API endpoints should have standard rate limit."""
+        """Default API endpoints should use tier's api rate limit."""
         from backend.middleware.rate_limit import RateLimitMiddleware
+        from backend.licensing.tiers import get_tier
 
         mw = RateLimitMiddleware(app=None, enabled=True)
-        assert mw._get_limit("/api/conversations") == 60
+        assert mw._get_limit("/api/conversations", "free") == get_tier("free").api_rate_limit
 
 
 # ══════════════════════════════════════════════════════════════════════════

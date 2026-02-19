@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.auth import get_current_user
 from backend.config import settings
 from backend.core.audit import log_audit_event
+from backend.licensing.tiers import FEATURE_MULTI_PROVIDER, tier_has_feature
 from backend.core.mapper import EntityMapper
 from backend.core.policy_engine import evaluate_policies
 from backend.core.rehydrator import Rehydrator
@@ -157,6 +158,29 @@ async def chat(
 ):
     """Send a message through sanitization and stream the LLM response."""
     org_id, user_id = user.organization_id, user.id
+
+    # Check multi-provider access
+    from backend.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    org_tier = org.tier if org else "free"
+    default_provider = settings.default_provider
+    if org and org.settings:
+        import json as _json
+        try:
+            org_settings = _json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+            default_provider = org_settings.get("default_provider", default_provider)
+        except (ValueError, TypeError):
+            pass
+    if request.provider != default_provider and not tier_has_feature(org_tier, FEATURE_MULTI_PROVIDER):
+        raise HTTPException(
+            403,
+            {
+                "error": "feature_not_available",
+                "message": f"Multi-provider access requires the Team plan or higher. Your default provider is '{default_provider}'.",
+                "current_tier": org_tier,
+                "feature": "multi_provider",
+            },
+        )
 
     # Get or create conversation + mapper
     conv, mapper = await _get_or_create_conversation(

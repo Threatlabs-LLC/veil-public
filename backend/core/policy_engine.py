@@ -79,8 +79,7 @@ async def evaluate_policies(
         if decision.action == "block":
             blocked = True
             block_reason = (
-                f"Policy '{decision.policy_name}' blocks {entity.entity_type} "
-                f"entities (detected: {entity.value[:20]}...)"
+                f"Policy '{decision.policy_name}' blocks {entity.entity_type} entities"
             )
         elif decision.action == "warn":
             warnings.append(

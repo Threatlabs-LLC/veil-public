@@ -22,6 +22,7 @@ from backend.api.auth import get_current_user
 from backend.config import settings
 from backend.core.audit import log_audit_event
 from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request
+from backend.licensing.tiers import FEATURE_MULTI_PROVIDER, tier_has_feature
 from backend.core.mapper import EntityMapper
 from backend.core.policy_engine import evaluate_policies
 from backend.core.rehydrator import Rehydrator
@@ -61,6 +62,27 @@ async def gateway_chat_completions(
 
     # Determine provider from model name
     provider_name = _infer_provider(model)
+
+    # Check multi-provider access
+    from backend.models.organization import Organization
+    org = await db.get(Organization, user.organization_id)
+    org_tier = org.tier if org else "free"
+    default_provider = settings.default_provider
+    if org and org.settings:
+        import json as _json
+        try:
+            org_settings = _json.loads(org.settings) if isinstance(org.settings, str) else org.settings
+            default_provider = org_settings.get("default_provider", default_provider)
+        except (ValueError, TypeError):
+            pass
+    if provider_name != default_provider and not tier_has_feature(org_tier, FEATURE_MULTI_PROVIDER):
+        raise HTTPException(403, {
+            "error": {
+                "message": f"Multi-provider access requires the Team plan or higher. Your default provider is '{default_provider}'.",
+                "type": "feature_not_available",
+                "code": "multi_provider_required",
+            }
+        })
 
     # Load custom rules for this org
     rules_result = await db.execute(

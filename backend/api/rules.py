@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
 from backend.db.session import get_db
-from backend.licensing.tiers import get_tier
+from backend.licensing.dependencies import require_feature
+from backend.licensing.tiers import FEATURE_CUSTOM_RULES, get_tier
 from backend.models.organization import Organization
 from backend.models.rule import DetectionRule
 from backend.models.user import User
@@ -105,7 +106,8 @@ async def list_rules(
     return [_rule_to_out(r) for r in result.scalars().all()]
 
 
-@router.post("", response_model=RuleOut, status_code=201)
+@router.post("", response_model=RuleOut, status_code=201,
+             dependencies=[Depends(require_feature(FEATURE_CUSTOM_RULES))])
 async def create_rule(
     body: RuleCreate,
     user: User = Depends(get_current_user),
@@ -177,7 +179,8 @@ async def get_rule(
     return _rule_to_out(rule)
 
 
-@router.patch("/{rule_id}", response_model=RuleOut)
+@router.patch("/{rule_id}", response_model=RuleOut,
+              dependencies=[Depends(require_feature(FEATURE_CUSTOM_RULES))])
 async def update_rule(
     rule_id: str,
     body: RuleUpdate,
@@ -222,7 +225,8 @@ async def update_rule(
     return _rule_to_out(rule)
 
 
-@router.delete("/{rule_id}")
+@router.delete("/{rule_id}",
+               dependencies=[Depends(require_feature(FEATURE_CUSTOM_RULES))])
 async def delete_rule(
     rule_id: str,
     user: User = Depends(get_current_user),

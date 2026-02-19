@@ -170,6 +170,10 @@ async def update_settings(
     if body.anthropic_api_key is not None:
         data["anthropic_api_key"] = body.anthropic_api_key
     if body.ollama_base_url is not None:
+        from backend.core.url_validator import is_safe_url
+        safe, reason = is_safe_url(body.ollama_base_url)
+        if not safe:
+            raise HTTPException(400, f"Invalid Ollama URL: {reason}")
         data["ollama_base_url"] = body.ollama_base_url
     if body.default_provider is not None:
         data["default_provider"] = body.default_provider

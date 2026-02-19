@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     port: int = 8000
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Redis (optional — for distributed rate limiting)
+    redis_url: str = ""
+
     # Licensing
     license_public_key_path: str = ""
 

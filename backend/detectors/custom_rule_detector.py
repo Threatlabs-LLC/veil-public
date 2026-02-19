@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+import threading
 from typing import Sequence
 
 from backend.detectors.base import BaseDetector, DetectedEntity
 from backend.models.rule import DetectionRule
+
+logger = logging.getLogger(__name__)
+
+# Maximum time (seconds) for a single regex rule to execute
+_REGEX_TIMEOUT = 1.0
 
 
 class CustomRuleDetector(BaseDetector):
@@ -36,21 +43,43 @@ class CustomRuleDetector(BaseDetector):
         return entities
 
     def _detect_regex(self, text: str, rule: DetectionRule) -> list[DetectedEntity]:
-        results = []
+        results: list[DetectedEntity] = []
         try:
             pattern = re.compile(rule.pattern, re.IGNORECASE)
-            for match in pattern.finditer(text):
-                results.append(DetectedEntity(
-                    entity_type=rule.entity_type,
-                    value=match.group(0),
-                    start=match.start(),
-                    end=match.end(),
-                    confidence=rule.confidence,
-                    detection_method="custom_regex",
-                    entity_subtype=rule.name,
-                ))
         except re.error:
-            pass  # Skip invalid patterns silently
+            return results  # Skip invalid patterns
+
+        # Run regex in a thread with timeout to prevent ReDoS
+        matches: list[tuple[str, int, int]] = []
+
+        def _run():
+            try:
+                for match in pattern.finditer(text):
+                    matches.append((match.group(0), match.start(), match.end()))
+            except Exception:
+                pass
+
+        thread = threading.Thread(target=_run, daemon=True)
+        thread.start()
+        thread.join(timeout=_REGEX_TIMEOUT)
+
+        if thread.is_alive():
+            logger.warning(
+                f"Custom regex rule '{rule.name}' (id={rule.id}) timed out after "
+                f"{_REGEX_TIMEOUT}s — possible ReDoS pattern, skipping"
+            )
+            return results
+
+        for value, start, end in matches:
+            results.append(DetectedEntity(
+                entity_type=rule.entity_type,
+                value=value,
+                start=start,
+                end=end,
+                confidence=rule.confidence,
+                detection_method="custom_regex",
+                entity_subtype=rule.name,
+            ))
         return results
 
     def _detect_dictionary(self, text: str, rule: DetectionRule) -> list[DetectedEntity]:

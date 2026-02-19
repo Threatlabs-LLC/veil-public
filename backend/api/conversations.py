@@ -11,9 +11,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.api.auth import get_current_user
 from backend.db.session import get_db
+from backend.licensing.dependencies import require_tier
 from backend.models.conversation import Conversation, Message
 from backend.models.entity import Entity, MappingSession
+from backend.models.user import User
 
 router = APIRouter()
 
@@ -231,7 +234,8 @@ async def delete_conversation(
     return {"status": "archived"}
 
 
-@router.get("/conversations/{conversation_id}/export")
+@router.get("/conversations/{conversation_id}/export",
+            dependencies=[Depends(require_tier("solo"))])
 async def export_conversation(
     conversation_id: str,
     format: str = Query("json", pattern="^(json|csv)$"),

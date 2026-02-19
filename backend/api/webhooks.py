@@ -99,6 +99,12 @@ async def create_webhook(
             "Upgrade to add more webhooks.",
         )
 
+    # Validate webhook URL against SSRF
+    from backend.core.url_validator import is_safe_url
+    safe, reason = is_safe_url(body.url)
+    if not safe:
+        raise HTTPException(400, f"Invalid webhook URL: {reason}")
+
     if body.format not in ("json", "slack"):
         raise HTTPException(400, "Format must be 'json' or 'slack'")
 
@@ -127,7 +133,8 @@ async def create_webhook(
     return _webhook_to_out(webhook)
 
 
-@router.patch("/{webhook_id}", response_model=WebhookOut)
+@router.patch("/{webhook_id}", response_model=WebhookOut,
+              dependencies=[Depends(require_feature(FEATURE_WEBHOOKS))])
 async def update_webhook(
     webhook_id: str,
     body: WebhookUpdate,
@@ -147,6 +154,10 @@ async def update_webhook(
     if body.name is not None:
         webhook.name = body.name
     if body.url is not None:
+        from backend.core.url_validator import is_safe_url
+        safe, reason = is_safe_url(body.url)
+        if not safe:
+            raise HTTPException(400, f"Invalid webhook URL: {reason}")
         webhook.url = body.url
     if body.event_types is not None:
         webhook.event_types = json.dumps(body.event_types)
@@ -158,7 +169,8 @@ async def update_webhook(
     return _webhook_to_out(webhook)
 
 
-@router.delete("/{webhook_id}")
+@router.delete("/{webhook_id}",
+               dependencies=[Depends(require_feature(FEATURE_WEBHOOKS))])
 async def delete_webhook(
     webhook_id: str,
     user: User = Depends(get_current_user),
@@ -178,7 +190,8 @@ async def delete_webhook(
     return {"status": "deleted"}
 
 
-@router.post("/{webhook_id}/test")
+@router.post("/{webhook_id}/test",
+             dependencies=[Depends(require_feature(FEATURE_WEBHOOKS))])
 async def test_webhook(
     webhook_id: str,
     user: User = Depends(get_current_user),

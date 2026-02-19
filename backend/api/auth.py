@@ -137,6 +137,10 @@ async def _validate_api_key(key: str, db: AsyncSession) -> User:
 @router.post("/auth/register", response_model=TokenResponse)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user and organization."""
+    # Validate password strength
+    if len(request.password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+
     # Check if email already exists
     result = await db.execute(select(User).where(User.email == request.email))
     if result.scalar_one_or_none():
