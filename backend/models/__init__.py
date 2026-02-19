@@ -9,6 +9,7 @@ from backend.models.usage import UsageStat
 from backend.models.policy import Policy
 from backend.models.api_key import ApiKey
 from backend.models.webhook import Webhook
+from backend.models.document import Document
 
 __all__ = [
     "Base",
@@ -24,4 +25,5 @@ __all__ = [
     "Policy",
     "ApiKey",
     "Webhook",
+    "Document",
 ]

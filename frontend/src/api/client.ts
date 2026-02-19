@@ -507,6 +507,146 @@ export const api = {
     return res.blob()
   },
 
+  // --- Document APIs ---
+
+  async scanDocument(file: File): Promise<{
+    document_id: string
+    filename: string
+    file_type: string
+    file_size_bytes: number
+    char_count: number
+    page_count: number | null
+    was_truncated: boolean
+    sanitized_text: string
+    entity_count: number
+    entities: Array<{
+      entity_type: string
+      placeholder: string
+      original: string
+      confidence: number
+      start: number
+      end: number
+      detection_method: string
+    }>
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await authFetch(`${BASE_URL}/documents/scan`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || err.message || 'Failed to scan document')
+    }
+    return res.json()
+  },
+
+  chatStreamWithDocument(params: {
+    message: string
+    file: File
+    conversation_id?: string
+    provider?: string
+    model?: string
+    temperature?: number
+    max_tokens?: number
+    system_prompt?: string
+  }): {
+    eventSource: AbortController
+    onSanitization: (cb: (data: SanitizationEvent) => void) => void
+    onToken: (cb: (content: string) => void) => void
+    onDone: (cb: (data: Record<string, unknown>) => void) => void
+    onError: (cb: (error: string) => void) => void
+    start: () => Promise<void>
+  } {
+    const controller = new AbortController()
+    let sanitizationCb: ((data: SanitizationEvent) => void) | null = null
+    let tokenCb: ((content: string) => void) | null = null
+    let doneCb: ((data: Record<string, unknown>) => void) | null = null
+    let errorCb: ((error: string) => void) | null = null
+
+    return {
+      eventSource: controller,
+      onSanitization(cb) { sanitizationCb = cb },
+      onToken(cb) { tokenCb = cb },
+      onDone(cb) { doneCb = cb },
+      onError(cb) { errorCb = cb },
+      async start() {
+        try {
+          const formData = new FormData()
+          formData.append('file', params.file)
+          formData.append('message', params.message)
+          if (params.conversation_id) formData.append('conversation_id', params.conversation_id)
+          if (params.provider) formData.append('provider', params.provider)
+          if (params.model) formData.append('model', params.model)
+          if (params.temperature !== undefined) formData.append('temperature', String(params.temperature))
+          if (params.max_tokens !== undefined) formData.append('max_tokens', String(params.max_tokens))
+          if (params.system_prompt) formData.append('system_prompt', params.system_prompt)
+
+          const res = await fetch(`${BASE_URL}/chat/with-document`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders() },
+            body: formData,
+            signal: controller.signal,
+          })
+
+          if (!res.ok) {
+            const text = await res.text()
+            errorCb?.(text)
+            return
+          }
+
+          const reader = res.body?.getReader()
+          if (!reader) return
+
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() ?? ''
+
+            let currentEvent = ''
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                currentEvent = line.slice(7)
+              } else if (line.startsWith('data: ')) {
+                const data = line.slice(6)
+                try {
+                  const parsed = JSON.parse(data)
+                  switch (currentEvent) {
+                    case 'sanitization':
+                      sanitizationCb?.(parsed)
+                      break
+                    case 'token':
+                      tokenCb?.(parsed.content)
+                      break
+                    case 'done':
+                      doneCb?.(parsed)
+                      break
+                    case 'error':
+                      errorCb?.(parsed.error)
+                      break
+                  }
+                } catch {
+                  // Skip malformed JSON
+                }
+              }
+            }
+          }
+        } catch (err) {
+          if ((err as Error).name !== 'AbortError') {
+            errorCb?.((err as Error).message)
+          }
+        }
+      },
+    }
+  },
+
   chatStream(params: {
     message: string
     conversation_id?: string

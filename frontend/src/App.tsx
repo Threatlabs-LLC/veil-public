@@ -7,6 +7,7 @@ import Admin from './pages/Admin'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
 import Webhooks from './pages/Webhooks'
+import Documents from './pages/Documents'
 import Login from './pages/Login'
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/documents" element={<Documents />} />
         <Route path="/webhooks" element={<Webhooks />} />
       </Route>
     </Routes>

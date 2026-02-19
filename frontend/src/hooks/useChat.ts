@@ -8,6 +8,7 @@ export interface ChatMessage {
   sanitizedContent?: string
   entities?: SanitizationEvent['entities']
   isStreaming?: boolean
+  attachedFile?: string
 }
 
 interface UseChatOptions {
@@ -25,7 +26,7 @@ export function useChat(options: UseChatOptions = {}) {
   const abortRef = useRef<AbortController | null>(null)
   const conversationIdRef = useRef(options.conversationId)
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, file?: File) => {
     setIsLoading(true)
     setError(null)
 
@@ -34,6 +35,7 @@ export function useChat(options: UseChatOptions = {}) {
       id: `user-${Date.now()}`,
       role: 'user',
       content,
+      attachedFile: file?.name,
     }
     setMessages(prev => [...prev, userMsg])
 
@@ -47,12 +49,21 @@ export function useChat(options: UseChatOptions = {}) {
     }
     setMessages(prev => [...prev, assistantMsg])
 
-    const stream = api.chatStream({
-      message: content,
-      conversation_id: conversationIdRef.current,
-      provider: options.provider ?? 'openai',
-      model: options.model ?? 'gpt-4o-mini',
-    })
+    // Choose stream method based on whether a file is attached
+    const stream = file
+      ? api.chatStreamWithDocument({
+          message: content,
+          file,
+          conversation_id: conversationIdRef.current,
+          provider: options.provider ?? 'openai',
+          model: options.model ?? 'gpt-4o-mini',
+        })
+      : api.chatStream({
+          message: content,
+          conversation_id: conversationIdRef.current,
+          provider: options.provider ?? 'openai',
+          model: options.model ?? 'gpt-4o-mini',
+        })
 
     abortRef.current = stream.eventSource
 

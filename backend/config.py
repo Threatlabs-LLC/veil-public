@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     # Data directory
     data_dir: Path = _PROJECT_ROOT / "data"
 
+    # Document upload
+    document_upload_enabled: bool = True
+    max_document_size_mb: int = 10
+
     model_config = {"env_prefix": "VEILCHAT_", "env_file": str(_PROJECT_ROOT / ".env")}
 
 

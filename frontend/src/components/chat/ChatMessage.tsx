@@ -1,4 +1,4 @@
-import { User, Bot, Copy, Check } from 'lucide-react'
+import { User, Bot, Copy, Check, Paperclip } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -62,6 +62,12 @@ export default function ChatMessage({ message }: Props) {
             : 'bg-gray-800 text-gray-100'
         )}
       >
+        {isUser && message.attachedFile && (
+          <div className="flex items-center gap-1.5 mb-1.5 text-xs text-veil-200/70">
+            <Paperclip className="w-3 h-3" />
+            <span>{message.attachedFile}</span>
+          </div>
+        )}
         {isUser ? (
           <div className="whitespace-pre-wrap break-words">{message.content}</div>
         ) : (
