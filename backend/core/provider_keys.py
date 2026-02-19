@@ -19,6 +19,8 @@ async def get_provider_key(
     Returns (api_key, base_url).
     """
     # Try org-level keys first
+    from backend.core.crypto import decrypt
+
     org = await db.get(Organization, org_id)
     if org and org.settings:
         try:
@@ -27,11 +29,11 @@ async def get_provider_key(
             org_settings = {}
 
         if provider == "openai":
-            key = org_settings.get("openai_api_key", "")
+            key = decrypt(org_settings.get("openai_api_key", ""))
             if key:
                 return key, settings.openai_base_url
         elif provider == "anthropic":
-            key = org_settings.get("anthropic_api_key", "")
+            key = decrypt(org_settings.get("anthropic_api_key", ""))
             if key:
                 return key, settings.anthropic_base_url
         elif provider == "ollama":

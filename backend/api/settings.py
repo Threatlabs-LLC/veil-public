@@ -65,9 +65,10 @@ async def get_settings(
 
     data = _parse_settings(org)
     from backend.config import settings as global_settings
+    from backend.core.crypto import decrypt
     return OrgSettings(
-        openai_api_key=_mask_key(data.get("openai_api_key", "")),
-        anthropic_api_key=_mask_key(data.get("anthropic_api_key", "")),
+        openai_api_key=_mask_key(decrypt(data.get("openai_api_key", ""))),
+        anthropic_api_key=_mask_key(decrypt(data.get("anthropic_api_key", ""))),
         ollama_base_url=data.get("ollama_base_url", global_settings.ollama_base_url),
         default_provider=data.get("default_provider", "openai"),
         default_model=data.get("default_model", "gpt-4o-mini"),
@@ -164,11 +165,12 @@ async def update_settings(
 
     data = _parse_settings(org)
 
-    # Update only provided fields
+    # Update only provided fields (encrypt API keys at rest)
+    from backend.core.crypto import encrypt
     if body.openai_api_key is not None:
-        data["openai_api_key"] = body.openai_api_key
+        data["openai_api_key"] = encrypt(body.openai_api_key) if body.openai_api_key else ""
     if body.anthropic_api_key is not None:
-        data["anthropic_api_key"] = body.anthropic_api_key
+        data["anthropic_api_key"] = encrypt(body.anthropic_api_key) if body.anthropic_api_key else ""
     if body.ollama_base_url is not None:
         from backend.core.url_validator import is_safe_url
         safe, reason = is_safe_url(body.ollama_base_url)
@@ -187,9 +189,10 @@ async def update_settings(
     org.settings = json.dumps(data)
 
     from backend.config import settings as global_settings
+    from backend.core.crypto import decrypt as _decrypt
     return OrgSettings(
-        openai_api_key=_mask_key(data.get("openai_api_key", "")),
-        anthropic_api_key=_mask_key(data.get("anthropic_api_key", "")),
+        openai_api_key=_mask_key(_decrypt(data.get("openai_api_key", ""))),
+        anthropic_api_key=_mask_key(_decrypt(data.get("anthropic_api_key", ""))),
         ollama_base_url=data.get("ollama_base_url", global_settings.ollama_base_url),
         default_provider=data.get("default_provider", "openai"),
         default_model=data.get("default_model", "gpt-4o-mini"),

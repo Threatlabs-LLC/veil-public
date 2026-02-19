@@ -83,6 +83,7 @@ class WebhookConfig:
     format: str = "json"  # json | slack
     headers: dict = field(default_factory=dict)
     is_active: bool = True
+    secret: str | None = None  # HMAC signing secret
 
 
 class EventBus:
@@ -166,10 +167,22 @@ class EventBus:
         else:
             payload = event.to_dict()
 
+        body_bytes = json.dumps(payload).encode()
         headers = {"Content-Type": "application/json", **webhook.headers}
 
+        # Sign the payload with HMAC-SHA256 if a secret is configured
+        if webhook.secret:
+            import hashlib
+            import hmac
+            signature = hmac.new(
+                webhook.secret.encode(), body_bytes, hashlib.sha256
+            ).hexdigest()
+            headers["X-VeilChat-Signature"] = f"sha256={signature}"
+
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(webhook.url, json=payload, headers=headers)
+            response = await client.post(
+                webhook.url, content=body_bytes, headers=headers
+            )
             if response.status_code >= 400:
                 logger.warning(
                     f"Webhook {webhook.url} returned {response.status_code}: {response.text[:200]}"

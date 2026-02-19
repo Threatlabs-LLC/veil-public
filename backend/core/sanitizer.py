@@ -23,23 +23,26 @@ class SanitizationResult:
     def entity_count(self) -> int:
         return len(self.entities)
 
-    def to_dict(self) -> dict:
-        return {
-            "original_text": self.original_text,
+    def to_dict(self, include_originals: bool = True) -> dict:
+        result = {
             "sanitized_text": self.sanitized_text,
+            "entity_count": self.entity_count,
             "entities": [
                 {
                     "entity_type": e.entity_type,
-                    "original": e.original_value,
                     "placeholder": e.placeholder,
                     "confidence": e.confidence,
                     "start": e.start,
                     "end": e.end,
                     "detection_method": e.detection_method,
+                    **({"original": e.original_value} if include_originals else {}),
                 }
                 for e in self.entities
             ],
         }
+        if include_originals:
+            result["original_text"] = self.original_text
+        return result
 
 
 class Sanitizer:

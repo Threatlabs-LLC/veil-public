@@ -73,24 +73,29 @@ async def list_models(
     configured["openai"] = bool(org_settings.get("openai_api_key") or settings.openai_api_key)
     configured["anthropic"] = bool(org_settings.get("anthropic_api_key") or settings.anthropic_api_key)
 
-    # Check if Ollama is reachable (async to avoid blocking)
+    # Check if Ollama is reachable (async to avoid blocking, with SSRF protection)
     ollama_url = org_settings.get("ollama_base_url") or settings.ollama_base_url
     try:
         import asyncio
         import urllib.request
+        from backend.core.url_validator import is_safe_url
 
-        def _probe_ollama() -> bool:
-            try:
-                req = urllib.request.Request(
-                    ollama_url.rstrip("/").replace("/v1", "") + "/api/tags",
-                    method="GET",
-                )
-                with urllib.request.urlopen(req, timeout=1):
-                    return True
-            except Exception:
-                return False
+        safe, _ = is_safe_url(ollama_url)
+        if not safe:
+            configured["ollama"] = False
+        else:
+            def _probe_ollama() -> bool:
+                try:
+                    req = urllib.request.Request(
+                        ollama_url.rstrip("/").replace("/v1", "") + "/api/tags",
+                        method="GET",
+                    )
+                    with urllib.request.urlopen(req, timeout=1):
+                        return True
+                except Exception:
+                    return False
 
-        configured["ollama"] = await asyncio.to_thread(_probe_ollama)
+            configured["ollama"] = await asyncio.to_thread(_probe_ollama)
     except Exception:
         configured["ollama"] = False
 

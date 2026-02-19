@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.api.auth import get_current_user
+from backend.core.crypto import decrypt as _decrypt
 from backend.db.session import get_db
 from backend.licensing.dependencies import require_tier
 from backend.models.conversation import Conversation, Message
@@ -151,7 +152,7 @@ async def get_conversation(
         entities = [
             EntityOut(
                 entity_type=e.entity_type,
-                original_value=e.original_value,
+                original_value=_decrypt(e.original_value),
                 placeholder=e.placeholder,
                 confidence=e.confidence,
                 detection_method=e.detection_method,
@@ -174,7 +175,7 @@ async def get_conversation(
                 content=(
                     m.desanitized_content or m.sanitized_content
                     if m.role == "assistant"
-                    else m.original_content or m.sanitized_content
+                    else _decrypt(m.original_content) or m.sanitized_content
                 ),
                 sanitized_content=m.sanitized_content,
                 entities_detected=m.entities_detected,
@@ -310,7 +311,7 @@ async def export_conversation(
                 "content": (
                     m.desanitized_content or m.sanitized_content
                     if m.role == "assistant"
-                    else m.original_content or m.sanitized_content
+                    else _decrypt(m.original_content) or m.sanitized_content
                 ),
                 "sanitized_content": m.sanitized_content,
                 "entities_detected": m.entities_detected,
@@ -323,7 +324,7 @@ async def export_conversation(
         "entities": [
             {
                 "entity_type": e.entity_type,
-                "original_value": e.original_value,
+                "original_value": _decrypt(e.original_value),
                 "placeholder": e.placeholder,
                 "confidence": e.confidence,
                 "detection_method": e.detection_method,

@@ -83,7 +83,10 @@ async def _get_or_create_conversation(
     """Get existing conversation or create a new one, along with its mapper."""
     if conversation_id:
         result = await db.execute(
-            select(Conversation).where(Conversation.id == conversation_id)
+            select(Conversation).where(
+                Conversation.id == conversation_id,
+                Conversation.organization_id == org_id,
+            )
         )
         conv = result.scalar_one_or_none()
         if not conv:
@@ -102,10 +105,11 @@ async def _get_or_create_conversation(
             result = await db.execute(
                 select(Entity).where(Entity.session_id == mapping_session.id)
             )
+            from backend.core.crypto import decrypt as _crypto_decrypt
             existing_entities = [
                 {
                     "entity_type": e.entity_type,
-                    "original_value": e.original_value,
+                    "original_value": _crypto_decrypt(e.original_value),
                     "placeholder": e.placeholder,
                 }
                 for e in result.scalars().all()
@@ -257,14 +261,15 @@ async def chat(
                 },
             )
 
-    # Save user message
+    # Save user message (encrypt original content at rest)
+    from backend.core.crypto import encrypt as _encrypt
     seq_num = conv.total_messages + 1
     user_msg = Message(
         conversation_id=conv.id,
         organization_id=org_id,
         sequence_number=seq_num,
         role="user",
-        original_content=request.message,
+        original_content=_encrypt(request.message),
         sanitized_content=result.sanitized_text,
         entities_detected=result.entity_count,
     )
@@ -284,13 +289,13 @@ async def chat(
     )
     conv.total_messages = seq_num
 
-    # Save new entities to DB
+    # Save new entities to DB (encrypt PII at rest)
     for ent in result.entities:
         entity_record = Entity(
             session_id=mapper.session_id,
             entity_type=ent.entity_type,
             entity_subtype=ent.entity_subtype,
-            original_value=ent.original_value,
+            original_value=_encrypt(ent.original_value),
             normalized_value=ent.normalized_value,
             placeholder=ent.placeholder,
             confidence=ent.confidence,
@@ -375,8 +380,8 @@ async def chat(
 
     # Stream response
     async def generate_sse() -> AsyncIterator[str]:
-        # First event: sanitization results
-        yield f"event: sanitization\ndata: {json.dumps(result.to_dict())}\n\n"
+        # First event: sanitization results (omit originals from SSE to reduce PII exposure)
+        yield f"event: sanitization\ndata: {json.dumps(result.to_dict(include_originals=False))}\n\n"
 
         full_response = ""
         model_used = request.model

@@ -1,5 +1,6 @@
 """Authentication API — JWT login/register + API key management."""
 
+import logging
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -16,8 +17,53 @@ from backend.db.session import get_db
 from backend.models.organization import Organization
 from backend.models.user import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
+
+# --- Login attempt tracking ---
+_MAX_FAILED_ATTEMPTS = 10
+_LOCKOUT_SECONDS = 900  # 15 minutes
+# In-memory store: email -> (failure_count, first_failure_time)
+_login_attempts: dict[str, tuple[int, datetime]] = {}
+
+
+def _check_lockout(email: str) -> None:
+    """Raise 429 if account is locked out from too many failed attempts."""
+    entry = _login_attempts.get(email)
+    if not entry:
+        return
+    count, first_failure = entry
+    if count >= _MAX_FAILED_ATTEMPTS:
+        elapsed = (datetime.now(timezone.utc) - first_failure).total_seconds()
+        if elapsed < _LOCKOUT_SECONDS:
+            raise HTTPException(
+                429,
+                f"Too many failed login attempts. Try again in {int(_LOCKOUT_SECONDS - elapsed)} seconds.",
+            )
+        # Lockout expired — reset
+        _login_attempts.pop(email, None)
+
+
+def _record_failed_login(email: str) -> None:
+    """Record a failed login attempt."""
+    entry = _login_attempts.get(email)
+    now = datetime.now(timezone.utc)
+    if entry:
+        count, first_failure = entry
+        elapsed = (now - first_failure).total_seconds()
+        if elapsed > _LOCKOUT_SECONDS:
+            # Window expired, start fresh
+            _login_attempts[email] = (1, now)
+        else:
+            _login_attempts[email] = (count + 1, first_failure)
+    else:
+        _login_attempts[email] = (1, now)
+
+
+def _clear_failed_logins(email: str) -> None:
+    """Clear failed login tracking on successful login."""
+    _login_attempts.pop(email, None)
 
 
 def _hash_password(password: str) -> str:
@@ -99,6 +145,12 @@ async def get_current_user(
         user = result.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(401, "User not found or inactive")
+
+        # Validate org claim matches user's actual org (detect stale tokens)
+        token_org = payload.get("org")
+        if token_org and token_org != user.organization_id:
+            raise HTTPException(401, "Token organization mismatch — please re-login")
+
         return user
 
     except JWTError:
@@ -191,17 +243,24 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Login with email and password."""
+    _check_lockout(request.email)
+
     result = await db.execute(select(User).where(User.email == request.email))
     user = result.scalar_one_or_none()
 
     if not user or not user.password_hash:
+        _record_failed_login(request.email)
         raise HTTPException(401, "Invalid email or password")
 
     if not _verify_password(request.password, user.password_hash):
+        _record_failed_login(request.email)
         raise HTTPException(401, "Invalid email or password")
 
     if not user.is_active:
         raise HTTPException(403, "Account is deactivated")
+
+    # Successful login — clear lockout tracking
+    _clear_failed_logins(request.email)
 
     # Update last login
     user.last_login_at = datetime.now(timezone.utc)

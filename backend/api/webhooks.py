@@ -220,6 +220,7 @@ async def test_webhook(
         url=webhook.url,
         event_types=None,
         format=webhook.format,
+        secret=webhook.secret,
     )
 
     try:
@@ -239,6 +240,7 @@ def _register_webhook_with_bus(webhook: Webhook) -> None:
         event_types=event_types,
         format=webhook.format,
         is_active=webhook.is_active,
+        secret=webhook.secret,
     )
     event_bus.register_webhook(config)
 
