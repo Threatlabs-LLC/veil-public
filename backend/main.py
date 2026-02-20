@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -143,6 +143,9 @@ if static_dir.exists():
     # SPA catch-all: serve index.html for any non-API route
     @app.get("/{path:path}")
     async def spa_fallback(path: str):
+        # Never intercept API or gateway routes
+        if path.startswith("api/") or path.startswith("v1/"):
+            raise HTTPException(404, "Not Found")
         # If a real static file exists, serve it
         file_path = static_dir / path
         if file_path.is_file():

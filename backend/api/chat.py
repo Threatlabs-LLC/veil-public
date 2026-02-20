@@ -28,7 +28,7 @@ from backend.core.rehydrator import Rehydrator
 from backend.core.sanitizer import Sanitizer
 from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request
 from backend.core.usage import RequestMetrics, record_usage
-from backend.db.session import get_db
+from backend.db.session import get_db, async_session as async_session_factory
 from backend.detectors.registry import create_default_registry
 from backend.models.conversation import Conversation, Message
 from backend.models.entity import Entity, MappingSession
@@ -487,10 +487,6 @@ async def chat(
             "X-Accel-Buffering": "no",
         },
     )
-
-
-# Need to import session factory for use inside the generator
-from backend.db.session import async_session as async_session_factory  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

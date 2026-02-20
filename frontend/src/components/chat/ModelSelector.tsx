@@ -70,6 +70,15 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
       setProviders(cachedProviders!)
       setModels(cachedModels!)
       setLoaded(true)
+
+      // Auto-select first configured provider if current one isn't configured
+      const configuredProviders = cachedProviders!.filter(p => p.is_configured)
+      if (configuredProviders.length > 0 && !configuredProviders.find(p => p.id === provider)) {
+        const firstProv = configuredProviders[0]
+        onProviderChange(firstProv.id)
+        const firstModel = cachedModels!.find(m => m.provider === firstProv.id)
+        if (firstModel) onModelChange(firstModel.id)
+      }
     })
   }, [])
 
@@ -91,13 +100,11 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
         }}
         className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs outline-none"
       >
-        {(providers.length > 0 ? providers : [
+        {(loaded ? providers.filter(p => p.is_configured) : [
           { id: 'openai', name: 'OpenAI', is_configured: true, model_count: 0 },
-          { id: 'anthropic', name: 'Anthropic', is_configured: true, model_count: 0 },
-          { id: 'ollama', name: 'Ollama', is_configured: true, model_count: 0 },
         ]).map((p) => (
           <option key={p.id} value={p.id}>
-            {p.name}{loaded && !p.is_configured ? ' (not configured)' : ''}
+            {p.name}
           </option>
         ))}
       </select>
