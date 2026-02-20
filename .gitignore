@@ -32,8 +32,8 @@ deploy/.env.*
 keys/private_key.pem
 
 # Internal docs (keep in private repo only)
-docs/GTM_PLAN.md
-docs/marketing/
+docs/
+CLAUDE.md
 
 # IDE
 .vscode/
