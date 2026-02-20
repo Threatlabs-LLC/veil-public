@@ -135,4 +135,17 @@ app.include_router(documents_router, prefix="/api")
 # Serve frontend static files in production
 static_dir = Path(__file__).parent.parent / "static"
 if static_dir.exists():
-    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+    from fastapi.responses import FileResponse
+
+    # Serve static assets (JS, CSS, images) directly
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+
+    # SPA catch-all: serve index.html for any non-API route
+    @app.get("/{path:path}")
+    async def spa_fallback(path: str):
+        # If a real static file exists, serve it
+        file_path = static_dir / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        # Otherwise serve index.html and let React Router handle it
+        return FileResponse(static_dir / "index.html")
