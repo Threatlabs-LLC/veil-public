@@ -37,22 +37,40 @@ async def _run_migrations(conn) -> None:
     """Add columns that create_all won't add to existing tables."""
     from sqlalchemy import text, inspect
 
-    def _get_columns(connection):
-        inspector = inspect(connection)
-        try:
-            return [c["name"] for c in inspector.get_columns("users")]
-        except Exception:
-            return []
+    is_sqlite = "sqlite" in settings.database_url
 
-    columns = await conn.run_sync(_get_columns)
+    def _get_table_columns(table_name):
+        def _inner(connection):
+            insp = inspect(connection)
+            try:
+                return [c["name"] for c in insp.get_columns(table_name)]
+            except Exception:
+                return []
+        return _inner
 
-    if "oauth_provider" not in columns:
-        if "sqlite" in settings.database_url:
+    # --- users table migrations ---
+    user_cols = await conn.run_sync(_get_table_columns("users"))
+    if user_cols and "oauth_provider" not in user_cols:
+        if is_sqlite:
             await conn.execute(text("ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50)"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN oauth_id VARCHAR(255)"))
         else:
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50)"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
+
+    # --- organizations table migrations ---
+    org_cols = await conn.run_sync(_get_table_columns("organizations"))
+    if org_cols and "stripe_customer_id" not in org_cols:
+        if is_sqlite:
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN stripe_customer_id VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN stripe_subscription_id VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN subscription_status VARCHAR(50)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN billing_email VARCHAR(255)"))
+        else:
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50)"))
+            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_email VARCHAR(255)"))
 
 
 async def get_db() -> AsyncSession:
