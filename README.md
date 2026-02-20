@@ -64,6 +64,8 @@ Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible cl
 - **Document Scanner** — scan PDF, DOCX, TXT, CSV, XLSX for PII
 - **Admin Dashboard** — usage analytics, audit logs, user management
 - **API Keys & Webhooks** — programmatic access and event integrations
+- **Google OAuth** — "Continue with Google" login (configurable)
+- **Password Reset** — SMTP-based email reset flow with branded templates
 - **Health Probes** — `/api/health/live` and `/api/health/ready` for Kubernetes
 
 <!-- TODO: Add screenshot of admin dashboard -->
@@ -86,6 +88,10 @@ All settings via environment variables with `VEILCHAT_` prefix. See [`.env.examp
 | `VEILCHAT_OLLAMA_BASE_URL` | Ollama URL (default: `localhost:11434/v1`) |
 | `VEILCHAT_SECRET_KEY` | JWT signing secret (required in production) |
 | `VEILCHAT_DATABASE_URL` | Database URL (default: SQLite, supports PostgreSQL) |
+| `VEILCHAT_GOOGLE_CLIENT_ID` | Google OAuth client ID (optional) |
+| `VEILCHAT_GOOGLE_CLIENT_SECRET` | Google OAuth client secret (optional) |
+| `VEILCHAT_SMTP_HOST` | SMTP server for password reset emails (optional) |
+| `VEILCHAT_SMTP_FROM_EMAIL` | From address for emails (optional) |
 
 ## Licensing
 
