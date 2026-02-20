@@ -15,6 +15,8 @@ class User(Base, UUIDMixin, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255))
     password_hash: Mapped[str | None] = mapped_column(String(255))
+    oauth_provider: Mapped[str | None] = mapped_column(String(50))
+    oauth_id: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20), default="member")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

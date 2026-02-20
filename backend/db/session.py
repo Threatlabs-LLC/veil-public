@@ -30,6 +30,29 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _run_migrations(conn)
+
+
+async def _run_migrations(conn) -> None:
+    """Add columns that create_all won't add to existing tables."""
+    from sqlalchemy import text, inspect
+
+    def _get_columns(connection):
+        inspector = inspect(connection)
+        try:
+            return [c["name"] for c in inspector.get_columns("users")]
+        except Exception:
+            return []
+
+    columns = await conn.run_sync(_get_columns)
+
+    if "oauth_provider" not in columns:
+        if "sqlite" in settings.database_url:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50)"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN oauth_id VARCHAR(255)"))
+        else:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50)"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
 
 
 async def get_db() -> AsyncSession:

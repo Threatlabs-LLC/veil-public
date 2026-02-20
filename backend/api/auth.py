@@ -1,10 +1,16 @@
-"""Authentication API — JWT login/register + API key management."""
+"""Authentication API — JWT login/register + Google OAuth + API key management."""
 
+import hashlib
 import logging
+import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
 
 import bcrypt
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
@@ -162,7 +168,6 @@ async def get_current_user(
 
 async def _validate_api_key(key: str, db: AsyncSession) -> User:
     """Validate a VeilChat API key by looking up its SHA-256 hash."""
-    import hashlib
     from backend.models.api_key import ApiKey
 
     key_hash = hashlib.sha256(key.encode()).hexdigest()
@@ -204,7 +209,6 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     # Ensure slug uniqueness
     result = await db.execute(select(Organization).where(Organization.slug == slug))
     if result.scalar_one_or_none():
-        import uuid
         slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
     org = Organization(name=org_name, slug=slug, tier="free")
@@ -344,3 +348,150 @@ async def change_password(
 
     user.password_hash = _hash_password(body.new_password)
     return {"status": "password_changed"}
+
+
+# --- Google OAuth ---
+
+# In-memory CSRF state store: state_hash -> expiry
+_oauth_states: dict[str, datetime] = {}
+
+
+def _cleanup_expired_states() -> None:
+    """Remove expired OAuth states."""
+    now = datetime.now(timezone.utc)
+    expired = [k for k, v in _oauth_states.items() if v < now]
+    for k in expired:
+        _oauth_states.pop(k, None)
+
+
+@router.get("/auth/google/authorize")
+async def google_authorize():
+    """Return the Google OAuth consent URL."""
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(501, "Google OAuth is not configured")
+
+    state = secrets.token_urlsafe(32)
+    state_hash = hashlib.sha256(state.encode()).hexdigest()
+
+    _cleanup_expired_states()
+    _oauth_states[state_hash] = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    params = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": _google_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account",
+    }
+    return {"authorize_url": f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"}
+
+
+@router.get("/auth/google/callback")
+async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
+    """Handle Google OAuth callback — exchange code, find/create user, redirect with token."""
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(501, "Google OAuth is not configured")
+
+    # Validate CSRF state
+    state_hash = hashlib.sha256(state.encode()).hexdigest()
+    _cleanup_expired_states()
+    if state_hash not in _oauth_states:
+        raise HTTPException(400, "Invalid or expired OAuth state")
+    _oauth_states.pop(state_hash, None)
+
+    # Exchange code for tokens
+    async with httpx.AsyncClient() as client:
+        token_res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": _google_redirect_uri(),
+                "grant_type": "authorization_code",
+            },
+        )
+        if token_res.status_code != 200:
+            logger.error("Google token exchange failed: %s", token_res.text)
+            raise HTTPException(400, "Failed to exchange Google authorization code")
+        token_data = token_res.json()
+
+        # Get user info
+        userinfo_res = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {token_data['access_token']}"},
+        )
+        if userinfo_res.status_code != 200:
+            raise HTTPException(400, "Failed to fetch Google user info")
+        google_user = userinfo_res.json()
+
+    google_id = google_user["id"]
+    email = google_user.get("email", "")
+    name = google_user.get("name", email.split("@")[0])
+
+    if not email:
+        raise HTTPException(400, "Google account has no email address")
+
+    # Find existing user by OAuth ID
+    result = await db.execute(
+        select(User).where(User.oauth_provider == "google", User.oauth_id == google_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Try matching by email (link existing password account)
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+        if user:
+            # Link OAuth to existing account
+            user.oauth_provider = "google"
+            user.oauth_id = google_id
+        else:
+            # Create new user + org
+            org_name = email.split("@")[0]
+            slug = org_name.lower().replace(" ", "-")[:100]
+            result = await db.execute(select(Organization).where(Organization.slug == slug))
+            if result.scalar_one_or_none():
+                slug = f"{slug}-{str(uuid.uuid4())[:8]}"
+
+            org = Organization(name=org_name, slug=slug, tier="free")
+            db.add(org)
+            await db.flush()
+
+            user = User(
+                organization_id=org.id,
+                email=email,
+                display_name=name,
+                password_hash=None,
+                oauth_provider="google",
+                oauth_id=google_id,
+                role="owner",
+            )
+            db.add(user)
+            await db.flush()
+
+            await seed_built_in_data(org.id, db)
+
+    if not user.is_active:
+        raise HTTPException(403, "Account is deactivated")
+
+    user.last_login_at = datetime.now(timezone.utc)
+
+    token, expires_in = create_access_token(user.id, user.organization_id)
+
+    # Redirect to frontend with token in query param
+    return RedirectResponse(
+        url=f"/login?oauth_token={token}",
+        status_code=302,
+    )
+
+
+def _google_redirect_uri() -> str:
+    """Build the Google OAuth redirect URI based on environment."""
+    if settings.cors_origins:
+        base = settings.cors_origins[0].rstrip("/")
+        return f"{base}/api/auth/google/callback"
+    return "http://localhost:8000/api/auth/google/callback"

@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     # Data directory
     data_dir: Path = _PROJECT_ROOT / "data"
 
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
     # Document upload
     document_upload_enabled: bool = True
     max_document_size_mb: int = 10
