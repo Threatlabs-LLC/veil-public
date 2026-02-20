@@ -29,7 +29,7 @@ export default function Webhooks() {
   const [error, setError] = useState('')
   const [testStatus, setTestStatus] = useState<Record<string, string>>({})
 
-  const load = () => api.getWebhooks().then(setWebhooks).catch(() => {})
+  const load = () => api.getWebhooks().then(setWebhooks).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
 
   const openCreate = () => {

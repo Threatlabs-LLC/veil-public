@@ -7,8 +7,8 @@ import Admin from './pages/Admin'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
 import Webhooks from './pages/Webhooks'
-import Billing from './pages/Billing'
 import Documents from './pages/Documents'
+import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/documents" element={<Documents />} />
         <Route path="/webhooks" element={<Webhooks />} />
-        <Route path="/billing" element={<Billing />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

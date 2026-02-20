@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.2.0 — Security, Polish & Hardening
+
+### Bug Fixes
+- **Fixed SSE crash**: EntityBadge/EntityDiffView crash when `original` field is absent in streaming responses (null safety)
+
+### Feature Gating
+- Per-feature enforcement: custom rules, webhooks, API keys, multi-provider, advanced audit
+- Tier-based user limits with invite blocking
+- Quota usage API (`GET /api/usage/quota`)
+
+### Infrastructure
+- Multi-worker uvicorn (`VEILCHAT_WORKERS` env var)
+- `.dockerignore` for smaller Docker build context
+- Rate limiter memory cleanup (stale key sweep)
+- Configurable `VEILCHAT_APP_BASE_URL` (replaces hardcoded URLs for OAuth callbacks, password reset links)
+
+### UI
+- 404 page for invalid routes (was white screen)
+- Error toasts/messages instead of silent failures (Admin, Settings, Webhooks)
+- Confirmation dialogs for destructive actions (delete conversation, deactivate user)
+- Clickable sidebar logo (navigate home)
+
+### Documentation
+- Updated DEPLOYMENT.md with `VEILCHAT_WORKERS` and `VEILCHAT_APP_BASE_URL` env vars
+- Updated API.md with `/api/usage/quota` endpoint
+- Fixed outdated contact emails in CODE_OF_CONDUCT.md
+
 ## v0.1.0 — Initial Release
 
 ### Core Features

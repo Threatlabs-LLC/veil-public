@@ -60,7 +60,7 @@ function buildSegments(sanitization: SanitizationEvent): TextSegment[] {
     }
     // The entity itself
     segments.push({
-      text: entity.original,
+      text: entity.original ?? entity.placeholder,
       isEntity: true,
       entityType: entity.entity_type,
       placeholder: entity.placeholder,

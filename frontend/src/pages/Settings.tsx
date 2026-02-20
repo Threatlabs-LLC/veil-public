@@ -225,6 +225,7 @@ function OrgSection() {
   const [name, setName] = useState('')
   const [orgSaving, setOrgSaving] = useState(false)
   const [orgSaved, setOrgSaved] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('veilchat_token')
@@ -235,7 +236,7 @@ function OrgSection() {
         setOrg(data)
         setName(data.name)
       })
-      .catch(() => {})
+      .catch((e) => setError(e.message))
   }, [])
 
   const handleSaveOrg = async () => {
@@ -253,7 +254,7 @@ function OrgSection() {
         setOrgSaved(true)
         setTimeout(() => setOrgSaved(false), 3000)
       }
-    } catch { /* silent */ } finally {
+    } catch (e) { setError((e as Error).message) } finally {
       setOrgSaving(false)
     }
   }
@@ -300,6 +301,7 @@ function OrgSection() {
           />
         </div>
       </div>
+      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
       <button
         onClick={handleSaveOrg}
         disabled={orgSaving || name === org.name}
@@ -332,7 +334,7 @@ function LicenseSection() {
   const [success, setSuccess] = useState('')
 
   const load = () =>
-    api.getLicenseStatus().then(setLicense).catch(() => {})
+    api.getLicenseStatus().then(setLicense).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
 
   const handleActivate = async () => {
@@ -474,7 +476,7 @@ function ApiKeysSection() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
-  const load = () => api.getApiKeys().then(setKeys).catch(() => {})
+  const load = () => api.getApiKeys().then(setKeys).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
 
   const handleCreate = async () => {

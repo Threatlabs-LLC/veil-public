@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { MessageSquarePlus, MessageSquare, Settings, SlidersHorizontal, Trash2, Clock, User, Search, Webhook, LogOut, ChevronDown, CreditCard, FileText } from 'lucide-react'
+import { MessageSquarePlus, MessageSquare, Settings, SlidersHorizontal, Trash2, Clock, User, Search, Webhook, LogOut, ChevronDown, FileText } from 'lucide-react'
 import { api } from '../api/client'
 
 interface ConversationItem {
@@ -42,14 +42,11 @@ export default function Sidebar() {
   const [sort, setSort] = useState<SortOption>('updated_desc')
   const [showSort, setShowSort] = useState(false)
   const [tier, setTier] = useState<string>('free')
-  const [cloudMode, setCloudMode] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
     api.getLicenseStatus().then(s => setTier(s.tier)).catch(() => {})
-    // Detect cloud mode by checking if billing endpoint exists
-    api.getSubscription().then(() => setCloudMode(true)).catch(() => {})
   }, [])
 
   const loadConversations = async (q?: string) => {
@@ -81,6 +78,7 @@ export default function Sidebar() {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!confirm('Delete this conversation? This cannot be undone.')) return
     try {
       await api.deleteConversation(id)
       setConversations(prev => prev.filter(c => c.id !== id))
@@ -100,7 +98,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
-        <div className="flex items-center gap-2 mb-4">
+        <Link to="/" className="flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity">
           <svg width="24" height="28" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="sb-s" x1="2" y1="2" x2="26" y2="32" gradientUnits="userSpaceOnUse">
@@ -123,7 +121,7 @@ export default function Sidebar() {
                 : 'bg-veil-900/50 text-veil-300'
             }`}>{tier}</span>
           )}
-        </div>
+        </Link>
         <button
           onClick={() => navigate('/')}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-veil-600 hover:bg-veil-700 transition-colors text-sm font-medium"
@@ -254,17 +252,6 @@ export default function Sidebar() {
           <Webhook className="w-4 h-4" />
           Webhooks
         </Link>
-        {cloudMode && (
-          <Link
-            to="/billing"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-              location.pathname === '/billing' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800'
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            Billing
-          </Link>
-        )}
         <Link
           to="/settings"
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${

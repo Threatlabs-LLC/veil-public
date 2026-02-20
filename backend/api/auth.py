@@ -424,8 +424,8 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depend
         _reset_tokens[token_hash] = (user.id, now + timedelta(minutes=30))
 
         # Build reset URL
-        if settings.cloud_mode:
-            base_url = "https://app.veilproxy.ai"
+        if settings.app_base_url and settings.app_base_url != "http://localhost:5173":
+            base_url = settings.app_base_url
         elif settings.cors_origins:
             base_url = settings.cors_origins[0].rstrip("/")
         else:
@@ -616,8 +616,8 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
 
 def _google_redirect_uri() -> str:
     """Build the Google OAuth redirect URI based on environment."""
-    if settings.cloud_mode:
-        return "https://app.veilproxy.ai/api/auth/google/callback"
+    if settings.app_base_url and settings.app_base_url != "http://localhost:5173":
+        return f"{settings.app_base_url}/api/auth/google/callback"
     # For self-hosted, use the first CORS origin or localhost
     if settings.cors_origins:
         base = settings.cors_origins[0].rstrip("/")

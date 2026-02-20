@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # App base URL (used for OAuth callbacks, password reset links)
+    app_base_url: str = "http://localhost:5173"
+
     # SMTP (for password reset emails)
     smtp_host: str = ""
     smtp_port: int = 587

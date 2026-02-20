@@ -50,10 +50,10 @@ export default function EntityBadge({ entityType, original, placeholder, confide
         <span className="opacity-60">{Math.round(confidence * 100)}%</span>
       </div>
       <div className="font-mono text-[11px] opacity-80">
-        {showOriginal ? original : original.replace(/./g, '\u2022')}
+        {showOriginal ? original : (original ?? '').replace(/./g, '\u2022')}
       </div>
       <div className="mt-1 opacity-50 text-[10px] uppercase tracking-wider">
-        {entityType.replace(/_/g, ' ')}
+        {(entityType ?? '').replace(/_/g, ' ')}
       </div>
     </div>
   )

@@ -117,15 +117,18 @@ function UsageTab() {
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [days, setDays] = useState(30)
   const [groupBy, setGroupBy] = useState('day')
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    api.getUsage(days, groupBy).then(setUsage).catch(() => {})
+    setError('')
+    api.getUsage(days, groupBy).then(setUsage).catch((e) => setError(e.message))
   }, [days, groupBy])
 
   return (
     <div className="space-y-4 max-w-5xl">
       <div className="flex items-center gap-4">
         <h2 className="text-lg font-semibold">Usage Analytics</h2>
+        {error && <span className="text-red-400 text-sm">{error}</span>}
         <select
           value={days}
           onChange={(e) => setDays(Number(e.target.value))}
@@ -205,7 +208,7 @@ function RulesTab() {
   const [form, setForm] = useState<RuleFormData>(emptyRuleForm)
   const [error, setError] = useState('')
 
-  const load = () => api.getRules().then(setRules).catch(() => {})
+  const load = () => api.getRules().then(setRules).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
 
   const openCreate = () => {
@@ -466,7 +469,7 @@ function PoliciesTab() {
   const [form, setForm] = useState<PolicyFormData>(emptyPolicyForm)
   const [error, setError] = useState('')
 
-  const load = () => api.getPolicies().then(setPolicies).catch(() => {})
+  const load = () => api.getPolicies().then(setPolicies).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
 
   const openCreate = () => {
@@ -750,6 +753,8 @@ function UsersTab() {
   }
 
   const handleToggleActive = async (user: UserData) => {
+    const action = user.is_active ? 'deactivate' : 'reactivate'
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} user "${user.email}"?`)) return
     try {
       await api.updateUser(user.id, { is_active: !user.is_active })
       load()
@@ -900,12 +905,13 @@ function UsersTab() {
 function AuditTab() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([])
   const [total, setTotal] = useState(0)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.getAuditLogs(100).then((data) => {
       setLogs(data.logs)
       setTotal(data.total)
-    }).catch(() => {})
+    }).catch((e) => setError(e.message))
   }, [])
 
   return (
@@ -914,6 +920,7 @@ function AuditTab() {
         <h2 className="text-lg font-semibold">Audit Logs</h2>
         <span className="text-sm text-gray-500">{total} entries</span>
       </div>
+      {error && <p className="text-red-400 text-sm">{error}</p>}
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-800">
