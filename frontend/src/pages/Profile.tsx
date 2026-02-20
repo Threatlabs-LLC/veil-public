@@ -35,9 +35,13 @@ export default function Profile() {
     fetch('/api/auth/me', { headers })
       .then(r => r.json())
       .then((data) => {
+        if (!data || data.detail) {
+          setError(data?.detail || 'Failed to load profile')
+          return
+        }
         setProfile(data)
         setDisplayName(data.display_name || '')
-        setEmail(data.email)
+        setEmail(data.email || '')
       })
       .catch(e => setError(e.message))
   }, [])
@@ -127,7 +131,7 @@ export default function Profile() {
 
             <div className="flex items-center gap-4 mb-6 p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
               <div className="w-16 h-16 rounded-full bg-veil-600 flex items-center justify-center text-2xl font-bold">
-                {(profile.display_name ?? profile.email).charAt(0).toUpperCase()}
+                {(profile.display_name || profile.email || '?').charAt(0).toUpperCase()}
               </div>
               <div>
                 <div className="font-medium text-lg">{profile.display_name || profile.email}</div>
