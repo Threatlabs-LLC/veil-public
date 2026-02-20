@@ -10,6 +10,7 @@ Then download the spaCy model: python -m spacy download en_core_web_md
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from backend.detectors.base import BaseDetector, DetectedEntity
@@ -18,6 +19,47 @@ if TYPE_CHECKING:
     from presidio_analyzer import AnalyzerEngine
 
 logger = logging.getLogger(__name__)
+
+# ── Post-processing blocklists to reduce NER false positives ──
+
+# Common words spaCy misidentifies as PERSON names
+_PERSON_BLOCKLIST = frozenset({
+    "server", "java", "python", "linux", "windows", "admin", "root",
+    "system", "database", "network", "client", "user", "host",
+    "null", "true", "false", "none", "test", "debug", "error",
+    "apache", "nginx", "docker", "kubernetes", "redis", "postgres",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+})
+
+# Acronyms and terms spaCy misidentifies as ORGANIZATION
+_ORG_BLOCKLIST = frozenset({
+    # PII/compliance terms
+    "ssn", "mrn", "npi", "ein", "dob", "dod", "phi", "pii", "pci",
+    "hipaa", "gdpr", "sox", "ferpa", "coppa",
+    # Networking / infra
+    "dmz", "lan", "wan", "vpn", "ssl", "tls", "tcp", "udp", "dns",
+    "http", "https", "ftp", "ssh", "api", "cdn", "ci", "cd",
+    # File / data formats
+    "mac", "ip", "url", "csv", "pdf", "xml", "json", "html",
+    "sql", "orm", "jwt", "rsa", "aes", "sha", "md5",
+    # Time / calendar
+    "cc", "bcc", "utc", "gmt", "est", "pst", "cst", "mst",
+    "q1", "q2", "q3", "q4", "fy", "ytd", "mtd",
+    # Tech terms
+    "lts", "eof", "etl", "erp", "crm", "cms",
+    # Job titles (not orgs)
+    "ceo", "cto", "cfo", "coo", "cio", "vp", "svp", "evp",
+})
+
+# Terms spaCy misidentifies as LOCATION/ADDRESS
+_ADDRESS_BLOCKLIST = frozenset({
+    "untrust", "trust", "inside", "outside", "internal", "external",
+    "dmz", "lan", "wan", "local", "remote", "upstream", "downstream",
+})
+
+# Company suffixes — reclassify PERSON → ORGANIZATION
+_COMPANY_SUFFIXES = ("llc", "inc", "inc.", "corp", "corp.", "ltd", "ltd.",
+                     "gmbh", "plc", "co.", "l.l.c.", "s.a.", "ag")
 
 # Presidio entity types → VeilChat entity types
 ENTITY_MAP = {
@@ -180,6 +222,77 @@ class PresidioDetector(BaseDetector):
             # Skip all-digit matches for PERSON/ORGANIZATION (process IDs, etc.)
             if entity_type in ("PERSON", "ORGANIZATION") and value.strip().isdigit():
                 continue
+
+            # ── PERSON filters ──
+            if entity_type == "PERSON":
+                val_lower = value.strip().lower()
+                # Blocklist: common tech terms misidentified as names
+                if val_lower in _PERSON_BLOCKLIST:
+                    continue
+                # Contains comma or newline — likely malformed span
+                if "," in value or "\n" in value:
+                    continue
+                # Looks like an ID/code — mostly digits, hyphens
+                stripped = value.strip()
+                if stripped and sum(c.isdigit() or c == "-" for c in stripped) >= len(stripped) * 0.5:
+                    continue
+                # All-caps with digits and hyphens — ID code, not a name
+                if re.fullmatch(r"[A-Z0-9][-A-Z0-9]*", stripped):
+                    continue
+                # Reclassify: ends with company suffix → ORGANIZATION
+                if any(val_lower.endswith(s) for s in _COMPANY_SUFFIXES):
+                    entity_type = "ORGANIZATION"
+
+            # ── ORGANIZATION filters ──
+            if entity_type == "ORGANIZATION":
+                val_lower = value.strip().lower()
+                # Blocklist: acronyms and terms (case-insensitive, ≤8 chars)
+                if len(val_lower) <= 8 and val_lower in _ORG_BLOCKLIST:
+                    continue
+                # Contains newlines — likely malformed multi-line span
+                if "\n" in value:
+                    continue
+                # Very short all-uppercase (≤3 chars) — abbreviation, not org
+                stripped = value.strip()
+                if len(stripped) <= 3 and stripped.isupper():
+                    continue
+                # Contains brackets — log/code artifact (e.g. "postgresql[9284")
+                if "[" in value or "]" in value:
+                    continue
+                # High digit ratio — likely an ID, not an org name
+                if stripped and sum(c.isdigit() for c in stripped) > len(stripped) * 0.4:
+                    continue
+                # Looks like a username (contains "." no spaces, lowercase)
+                if "." in stripped and " " not in stripped and stripped == stripped.lower():
+                    continue
+                # camelCase variable names (lowercase followed by uppercase without space)
+                if " " not in stripped and any(c.islower() for c in stripped) and any(c.isupper() for c in stripped[1:]):
+                    if re.search(r"[a-z][A-Z]", stripped):
+                        continue
+                # Starts with common document structure prefixes
+                if any(stripped.startswith(p) for p in ("Invoice ", "PO Box", "Server Access")):
+                    continue
+                # Looks like state + ZIP code (e.g. "TX 78701")
+                if re.fullmatch(r"[A-Z]{2}\s+\d{5}(?:-\d{4})?", stripped):
+                    continue
+                # Contains commas with digits — log/syslog fragments
+                if "," in value and any(c.isdigit() for c in value):
+                    continue
+                # All-caps+digits+hyphens only — ID code (e.g. "CUST-WDA-4829")
+                if re.fullmatch(r"[A-Z0-9][-A-Z0-9]*", stripped):
+                    continue
+                # Job titles / generic phrases
+                _generic_phrases = {"vp sales", "vp eng", "general counsel",
+                                    "data protection", "protected health information",
+                                    "credit facilities"}
+                if val_lower in _generic_phrases:
+                    continue
+
+            # ── ADDRESS filters ──
+            if entity_type == "ADDRESS":
+                val_lower = value.strip().lower()
+                if val_lower in _ADDRESS_BLOCKLIST:
+                    continue
 
             entities.append(DetectedEntity(
                 entity_type=entity_type,

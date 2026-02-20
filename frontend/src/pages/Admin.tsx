@@ -950,7 +950,7 @@ function AuditTab() {
             <tr>
               <th className="text-left p-3 text-gray-400 font-medium">Time</th>
               <th className="text-left p-3 text-gray-400 font-medium">Event</th>
-              <th className="text-left p-3 text-gray-400 font-medium">Provider</th>
+              <th className="text-left p-3 text-gray-400 font-medium">Engine</th>
               <th className="text-left p-3 text-gray-400 font-medium">Model</th>
               <th className="text-right p-3 text-gray-400 font-medium">Latency</th>
               <th className="text-left p-3 text-gray-400 font-medium">Error</th>
@@ -959,16 +959,18 @@ function AuditTab() {
           <tbody>
             {logs.length === 0 ? (
               <tr><td colSpan={6} className="p-4 text-center text-gray-500">No audit logs yet</td></tr>
-            ) : logs.map((log) => (
+            ) : logs.map((log) => {
+              const isSanitize = log.event_type.includes('sanitize')
+              return (
               <tr key={log.id} className="border-t border-gray-700/50">
                 <td className="p-3 text-xs text-gray-400 whitespace-nowrap">
                   {new Date(log.created_at).toLocaleString()}
                 </td>
                 <td className="p-3">
-                  <span className="px-2 py-0.5 rounded text-xs bg-gray-700">{log.event_type}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${isSanitize ? 'bg-emerald-900/60 text-emerald-300' : 'bg-gray-700'}`}>{log.event_type}</span>
                 </td>
-                <td className="p-3 text-gray-300">{log.provider || '-'}</td>
-                <td className="p-3 font-mono text-xs">{log.model_requested || '-'}</td>
+                <td className="p-3 text-gray-300">{isSanitize ? 'local' : (log.provider || '-')}</td>
+                <td className="p-3 font-mono text-xs">{isSanitize ? '-' : (log.model_requested || '-')}</td>
                 <td className="p-3 text-right text-gray-400">
                   {log.latency_ms ? `${log.latency_ms}ms` : '-'}
                 </td>
@@ -976,7 +978,8 @@ function AuditTab() {
                   {log.error_message || '-'}
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

@@ -202,6 +202,34 @@ PATTERNS: list[PatternDef] = [
         confidence=0.98,
         entity_subtype="AWS",
     ),
+    # Stripe API keys (sk_live_, pk_live_, sk_test_, pk_test_, rk_live_, rk_test_)
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\b[spr]k_(?:live|test)_[a-zA-Z0-9]{20,}\b"),
+        confidence=0.98,
+        entity_subtype="STRIPE",
+    ),
+    # GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_)
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bgh[pousr]_[a-zA-Z0-9]{36,}\b"),
+        confidence=0.98,
+        entity_subtype="GITHUB",
+    ),
+    # OpenAI API keys (sk-...)
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bsk-[a-zA-Z0-9\-]{20,}\b"),
+        confidence=0.95,
+        entity_subtype="OPENAI",
+    ),
+    # Slack tokens (xoxb-, xoxp-, xoxa-, xoxr-, xoxs-)
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bxox[bpars]-[a-zA-Z0-9\-]{20,}\b"),
+        confidence=0.98,
+        entity_subtype="SLACK",
+    ),
     # Generic secret patterns (key= or token= or password= followed by value)
     PatternDef(
         entity_type="SECRET",
@@ -223,6 +251,106 @@ PATTERNS: list[PatternDef] = [
             re.IGNORECASE,
         ),
         confidence=0.98,
+    ),
+
+    # --- IBAN (International Bank Account Number) ---
+    # 2 letter country code + 2 check digits + up to 30 alphanumeric chars
+    PatternDef(
+        entity_type="IBAN",
+        pattern=re.compile(
+            r"\b[A-Z]{2}\d{2}[\s]?[\dA-Z]{4}[\s]?(?:[\dA-Z]{4}[\s]?){1,7}[\dA-Z]{1,4}\b"
+        ),
+        confidence=0.90,
+    ),
+
+    # --- SWIFT/BIC Code ---
+    # 8 or 11 alphanumeric chars (bank code + country + location + optional branch)
+    PatternDef(
+        entity_type="SWIFT_BIC",
+        pattern=re.compile(
+            r"(?:SWIFT|BIC|SWIFT/BIC)[\s:]*([A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.92,
+    ),
+
+    # --- US Bank Routing Number (ABA) ---
+    # 9 digits, requires context keyword to avoid SSN false positives
+    PatternDef(
+        entity_type="ROUTING_NUMBER",
+        pattern=re.compile(
+            r"(?:routing|ABA|routing\s*(?:number|no|#))[\s:#]*(\d{9})\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+    ),
+
+    # --- Bank Account Number ---
+    # 8-17 digits, requires context keyword
+    PatternDef(
+        entity_type="BANK_ACCOUNT",
+        pattern=re.compile(
+            r"(?:account|acct)[\s]*(?:number|no|num|#)?[\s:#]*(\d{8,17})\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.85,
+    ),
+
+    # --- US Driver's License ---
+    # State-specific formats with context keyword
+    PatternDef(
+        entity_type="DRIVERS_LICENSE",
+        pattern=re.compile(
+            r"(?:driver'?s?\s*licen[sc]e|DL|license\s*(?:number|no|#))[\s:#]*"
+            r"([A-Z]{1,2}\s*[A-Z]?\d{4,10})\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.88,
+    ),
+
+    # --- NPI (National Provider Identifier) ---
+    # 10-digit number used in US healthcare, requires context
+    PatternDef(
+        entity_type="NPI",
+        pattern=re.compile(
+            r"(?:NPI|National\s*Provider)[\s:#]*(\d{10})\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+    ),
+
+    # --- AWS Account ID ---
+    # 12 digits, requires context keyword
+    PatternDef(
+        entity_type="AWS_ACCOUNT_ID",
+        pattern=re.compile(
+            r"(?:AWS\s*Account\s*(?:ID|#)?|account[\s_-]*id)[\s:#]*(\d{12})\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.88,
+    ),
+
+    # --- Base64 Encoded Payloads ---
+    # Long base64 strings (50+ chars) preceded by common indicators
+    PatternDef(
+        entity_type="ENCODED_PAYLOAD",
+        pattern=re.compile(
+            r"(?:-enc(?:oded)?|base64|--data|payload)\s+([A-Za-z0-9+/]{50,}={0,2})",
+            re.IGNORECASE,
+        ),
+        confidence=0.85,
+    ),
+
+    # --- EIN (US Employer Identification Number) ---
+    # XX-XXXXXXX format, first two digits 10-99, often preceded by "EIN" context
+    PatternDef(
+        entity_type="EIN",
+        pattern=re.compile(
+            r"(?:EIN|Tax\s*ID|Employer\s*(?:Identification|ID))"
+            r"[\s:#()\w]*?(\d{2}-\d{7})",
+            re.IGNORECASE,
+        ),
+        confidence=0.92,
     ),
 
     # --- Bearer / Authorization Tokens ---
@@ -334,11 +462,11 @@ PATTERNS: list[PatternDef] = [
     ),
 
     # --- Domain\Username (Windows/AD format) ---
-    # Covers: ACME\jsmith, DOMAIN\admin, NT AUTHORITY\SYSTEM
+    # Covers: ACME\jsmith, acme\admin, NT AUTHORITY\SYSTEM
     PatternDef(
         entity_type="USERNAME",
         pattern=re.compile(
-            r"\b([A-Z][A-Z0-9\-]{1,15})\\([a-zA-Z0-9._\-]{1,64})\b"
+            r"\b([A-Za-z][A-Za-z0-9\-]{1,15})\\([a-zA-Z0-9._\-]{1,64})\b"
         ),
         confidence=0.92,
         entity_subtype="DOMAIN_USER",
