@@ -9,8 +9,31 @@ import type { DashboardStats, UsageData, AuditLogEntry, DetectionRule, PolicyDat
 
 type Tab = 'overview' | 'usage' | 'rules' | 'policies' | 'users' | 'audit'
 
+const TIER_FEATURES: Record<string, string[]> = {
+  free: [],
+  solo: ['custom_rules'],
+  team: ['custom_rules', 'webhooks', 'multi_provider', 'advanced_audit', 'sso'],
+  business: ['custom_rules', 'webhooks', 'multi_provider', 'advanced_audit', 'sso', 'api_keys'],
+  enterprise: ['custom_rules', 'webhooks', 'multi_provider', 'advanced_audit', 'sso', 'api_keys'],
+}
+
 export default function Admin() {
   const [tab, setTab] = useState<Tab>('overview')
+  const [visibleTabs, setVisibleTabs] = useState<Tab[]>(['overview', 'usage', 'rules', 'policies'])
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('veilchat_user') || '{}')
+    const isAdmin = user.role === 'owner' || user.role === 'admin'
+    const tabs: Tab[] = ['overview', 'usage', 'rules', 'policies']
+    if (isAdmin) tabs.push('users')
+    api.getQuota().then((q) => {
+      const features = TIER_FEATURES[q.tier] || []
+      if (features.includes('advanced_audit')) tabs.push('audit')
+      setVisibleTabs(tabs)
+    }).catch(() => {
+      setVisibleTabs(tabs)
+    })
+  }, [])
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -19,7 +42,7 @@ export default function Admin() {
         <BarChart3 className="w-5 h-5 text-veil-500" />
         <span className="font-medium">Admin Dashboard</span>
         <nav className="flex gap-1 ml-4">
-          {(['overview', 'usage', 'rules', 'policies', 'users', 'audit'] as Tab[]).map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
