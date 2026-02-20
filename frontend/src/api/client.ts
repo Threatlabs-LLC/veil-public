@@ -39,6 +39,13 @@ async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   return res
 }
 
+async function throwServerError(res: Response, fallback: string): Promise<never> {
+  const err = await res.json().catch(() => ({}))
+  const detail = err.detail
+  const msg = typeof detail === 'string' ? detail : detail?.message
+  throw new Error(msg || fallback)
+}
+
 export interface ConversationSummary {
   id: string
   title: string | null
@@ -227,31 +234,31 @@ export const api = {
 
   async getDashboard(): Promise<DashboardStats> {
     const res = await authFetch(`${BASE_URL}/admin/dashboard`)
-    if (!res.ok) throw new Error('Failed to load dashboard')
+    if (!res.ok) await throwServerError(res, 'Failed to load dashboard')
     return res.json()
   },
 
   async getUsage(days = 30, groupBy = 'day'): Promise<UsageData> {
     const res = await authFetch(`${BASE_URL}/admin/usage?days=${days}&group_by=${groupBy}`)
-    if (!res.ok) throw new Error('Failed to load usage')
+    if (!res.ok) await throwServerError(res, 'Failed to load usage')
     return res.json()
   },
 
   async getEntityStats(): Promise<{ by_type: Array<{ entity_type: string; count: number }>; total: number }> {
     const res = await authFetch(`${BASE_URL}/admin/entities`)
-    if (!res.ok) throw new Error('Failed to load entity stats')
+    if (!res.ok) await throwServerError(res, 'Failed to load entity stats')
     return res.json()
   },
 
   async getAuditLogs(limit = 50, offset = 0): Promise<{ total: number; logs: AuditLogEntry[] }> {
     const res = await authFetch(`${BASE_URL}/admin/audit?limit=${limit}&offset=${offset}`)
-    if (!res.ok) throw new Error('Failed to load audit logs')
+    if (!res.ok) await throwServerError(res, 'Failed to load audit logs')
     return res.json()
   },
 
   async getUsers(): Promise<Array<{ id: string; email: string; display_name: string | null; role: string; is_active: boolean; last_login_at: string | null; created_at: string }>> {
     const res = await authFetch(`${BASE_URL}/admin/users`)
-    if (!res.ok) throw new Error('Failed to load users')
+    if (!res.ok) await throwServerError(res, 'Failed to load users')
     return res.json()
   },
 
@@ -283,13 +290,13 @@ export const api = {
 
   async getRules(): Promise<DetectionRule[]> {
     const res = await authFetch(`${BASE_URL}/rules`)
-    if (!res.ok) throw new Error('Failed to load rules')
+    if (!res.ok) await throwServerError(res, 'Failed to load rules')
     return res.json()
   },
 
   async getPolicies(): Promise<PolicyData[]> {
     const res = await authFetch(`${BASE_URL}/policies`)
-    if (!res.ok) throw new Error('Failed to load policies')
+    if (!res.ok) await throwServerError(res, 'Failed to load policies')
     return res.json()
   },
 
@@ -377,7 +384,7 @@ export const api = {
 
   async getApiKeys(): Promise<ApiKeyData[]> {
     const res = await authFetch(`${BASE_URL}/api-keys`)
-    if (!res.ok) throw new Error('Failed to load API keys')
+    if (!res.ok) await throwServerError(res, 'Failed to load API keys')
     return res.json()
   },
 
@@ -411,7 +418,7 @@ export const api = {
 
   async getWebhooks(): Promise<WebhookData[]> {
     const res = await authFetch(`${BASE_URL}/webhooks`)
-    if (!res.ok) throw new Error('Failed to load webhooks')
+    if (!res.ok) await throwServerError(res, 'Failed to load webhooks')
     return res.json()
   },
 

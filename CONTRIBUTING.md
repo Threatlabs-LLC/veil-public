@@ -144,4 +144,4 @@ Veil's detection system is modular. To add a new entity type:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the BSL 1.1 License.

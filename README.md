@@ -1,6 +1,6 @@
 # VeilProxy
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
 
@@ -111,7 +111,7 @@ Python 3.12 · FastAPI · SQLAlchemy (async) · React 19 · TypeScript · Vite �
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+BSL 1.1 — see [LICENSE](LICENSE). Self-hosting for internal use is always permitted. Converts to Apache 2.0 on Feb 20, 2030.
 
 ---
 

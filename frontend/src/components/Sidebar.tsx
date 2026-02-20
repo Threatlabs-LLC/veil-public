@@ -281,7 +281,7 @@ export default function Sidebar() {
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>
-        <div className="text-xs text-gray-600 px-3 pt-1 font-mono">VeilProxy v0.1.0</div>
+        <div className="text-xs text-gray-600 px-3 pt-1 font-mono">VeilProxy v0.2.0</div>
       </div>
     </aside>
   )
