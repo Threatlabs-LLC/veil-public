@@ -94,6 +94,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """
 
     AUTH_RPM = 10  # Fixed — brute-force protection on login/register
+    # Auth endpoints that should use normal API rate limits (not brute-force)
+    AUTH_EXEMPT = {"/api/auth/me", "/api/auth/profile", "/api/auth/google/authorize", "/api/auth/google/callback"}
 
     def __init__(self, app, enabled: bool = True):
         super().__init__(app)
@@ -104,7 +106,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     def _get_limit(self, path: str, tier: str) -> int:
         """Get rate limit based on path and org tier."""
-        if path.startswith("/api/auth/"):
+        if path.startswith("/api/auth/") and path not in self.AUTH_EXEMPT:
             return self.AUTH_RPM
         from backend.licensing.tiers import get_tier
         tier_def = get_tier(tier)
@@ -119,7 +121,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return f"rl:gw:{org_id}"
             return f"rl:api:{org_id}"
         ip = request.client.host if request.client else "unknown"
-        if path.startswith("/api/auth/"):
+        if path.startswith("/api/auth/") and path not in self.AUTH_EXEMPT:
             return f"rl:auth:{ip}"
         return f"rl:api:{ip}"
 
