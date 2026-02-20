@@ -131,6 +131,10 @@ async def get_current_user(
 ) -> User:
     """FastAPI dependency — extracts and validates the current user from JWT or API key."""
     if not credentials:
+        # In cloud mode, always require authentication
+        from backend.config import settings as app_settings
+        if app_settings.cloud_mode:
+            raise HTTPException(401, "Not authenticated")
         # Fall back to default user for community edition (no auth required)
         result = await db.execute(select(User).limit(1))
         user = result.scalar_one_or_none()
@@ -211,7 +215,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     if result.scalar_one_or_none():
         slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
-    org = Organization(name=org_name, slug=slug, tier="free")
+    org = Organization(name=org_name, slug=slug, tier="free", subscription_status=None)
     db.add(org)
     await db.flush()
 
@@ -350,6 +354,126 @@ async def change_password(
     return {"status": "password_changed"}
 
 
+# --- Password Reset ---
+
+# In-memory reset token store: token_hash -> (user_id, expiry)
+_reset_tokens: dict[str, tuple[str, datetime]] = {}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+def _send_reset_email(to_email: str, reset_url: str) -> bool:
+    """Send password reset email via SMTP. Returns True on success."""
+    if not settings.smtp_host or not settings.smtp_from_email:
+        return False
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Reset your VeilProxy password"
+        msg["From"] = settings.smtp_from_email
+        msg["To"] = to_email
+
+        text = f"Reset your password by visiting: {reset_url}\n\nThis link expires in 30 minutes."
+        html = f"""<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+<h2 style="color:#5B6BC0">VeilProxy Password Reset</h2>
+<p>Click the button below to reset your password. This link expires in 30 minutes.</p>
+<a href="{reset_url}" style="display:inline-block;background:#5B6BC0;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Reset Password</a>
+<p style="margin-top:24px;color:#888;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
+</div>"""
+
+        msg.attach(MIMEText(text, "plain"))
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            if settings.smtp_use_tls:
+                server.starttls()
+            if settings.smtp_user:
+                server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        logger.error("Failed to send reset email: %s", e)
+        return False
+
+
+@router.post("/auth/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Request a password reset link. Always returns success for security."""
+    # Clean up expired tokens
+    now = datetime.now(timezone.utc)
+    expired = [k for k, v in _reset_tokens.items() if v[1] < now]
+    for k in expired:
+        _reset_tokens.pop(k, None)
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user and user.is_active:
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        _reset_tokens[token_hash] = (user.id, now + timedelta(minutes=30))
+
+        # Build reset URL
+        if settings.cloud_mode:
+            base_url = "https://app.veilproxy.ai"
+        elif settings.cors_origins:
+            base_url = settings.cors_origins[0].rstrip("/")
+        else:
+            base_url = "http://localhost:5173"
+        reset_url = f"{base_url}/reset-password?token={token}"
+
+        sent = _send_reset_email(user.email, reset_url)
+        if not sent and settings.debug:
+            logger.info("Password reset link (SMTP not configured): %s", reset_url)
+
+    # Always return same response (never reveal if email exists)
+    return {"status": "ok", "message": "If that email is registered, a reset link has been sent."}
+
+
+@router.post("/auth/reset-password")
+async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Reset password using a valid reset token."""
+    if len(body.new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+
+    # Clean up expired tokens
+    now = datetime.now(timezone.utc)
+    expired = [k for k, v in _reset_tokens.items() if v[1] < now]
+    for k in expired:
+        _reset_tokens.pop(k, None)
+
+    entry = _reset_tokens.get(token_hash)
+    if not entry:
+        raise HTTPException(400, "Invalid or expired reset token")
+
+    user_id, expiry = entry
+    if now > expiry:
+        _reset_tokens.pop(token_hash, None)
+        raise HTTPException(400, "Invalid or expired reset token")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user or not user.is_active:
+        raise HTTPException(400, "Invalid or expired reset token")
+
+    user.password_hash = _hash_password(body.new_password)
+    _reset_tokens.pop(token_hash, None)
+
+    return {"status": "ok", "message": "Password has been reset. You can now sign in."}
+
+
 # --- Google OAuth ---
 
 # In-memory CSRF state store: state_hash -> expiry
@@ -455,9 +579,10 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
             slug = org_name.lower().replace(" ", "-")[:100]
             result = await db.execute(select(Organization).where(Organization.slug == slug))
             if result.scalar_one_or_none():
+                import uuid
                 slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
-            org = Organization(name=org_name, slug=slug, tier="free")
+            org = Organization(name=org_name, slug=slug, tier="free", subscription_status=None)
             db.add(org)
             await db.flush()
 
@@ -482,7 +607,7 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
 
     token, expires_in = create_access_token(user.id, user.organization_id)
 
-    # Redirect to frontend with token in query param
+    # Redirect to frontend with token in URL fragment (never sent to server)
     return RedirectResponse(
         url=f"/login?oauth_token={token}",
         status_code=302,
@@ -491,6 +616,9 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
 
 def _google_redirect_uri() -> str:
     """Build the Google OAuth redirect URI based on environment."""
+    if settings.cloud_mode:
+        return "https://app.veilproxy.ai/api/auth/google/callback"
+    # For self-hosted, use the first CORS origin or localhost
     if settings.cors_origins:
         base = settings.cors_origins[0].rstrip("/")
         return f"{base}/api/auth/google/callback"

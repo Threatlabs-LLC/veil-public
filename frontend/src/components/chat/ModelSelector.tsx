@@ -73,8 +73,8 @@ export default function ModelSelector({ provider, model, onProviderChange, onMod
 
       // Auto-select first configured provider if current one isn't configured
       const configuredProviders = cachedProviders!.filter(p => p.is_configured)
-      if (configuredProviders.length > 0 && !configuredProviders.find(p => p.id === provider)) {
-        const firstProv = configuredProviders[0]
+      const firstProv = configuredProviders[0]
+      if (firstProv && !configuredProviders.find(p => p.id === provider)) {
         onProviderChange(firstProv.id)
         const firstModel = cachedModels!.find(m => m.provider === firstProv.id)
         if (firstModel) onModelChange(firstModel.id)

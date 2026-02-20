@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -197,6 +197,13 @@ export default function Login() {
           >
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
+          {mode === 'login' && (
+            <p className="text-center">
+              <Link to="/forgot-password" className="text-veil-400 hover:text-veil-300 text-sm">
+                Forgot password?
+              </Link>
+            </p>
+          )}
         </form>
       </div>
     </div>
