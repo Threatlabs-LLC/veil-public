@@ -56,8 +56,10 @@ export default function Profile() {
         body: JSON.stringify({ display_name: displayName, email }),
       })
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.detail || 'Failed to save')
+        const text = await res.text()
+        let msg = `Server error (${res.status})`
+        try { msg = JSON.parse(text).detail || msg } catch {}
+        throw new Error(msg)
       }
       const updated = await res.json()
       setProfile(updated)
