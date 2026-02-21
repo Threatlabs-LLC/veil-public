@@ -83,7 +83,9 @@ async def get_dashboard(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get overview dashboard stats for the organization."""
+    """Get overview dashboard stats for the organization. Owner/admin only."""
+    if user.role not in ("owner", "admin", "super_admin"):
+        raise HTTPException(403, "Admin access required")
     org_id = user.organization_id
 
     # Total conversations
@@ -123,11 +125,12 @@ async def get_dashboard(
     total_cost_micro = int(row[1])
 
     # Active users (logged in last 30 days)
-    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     result = await db.execute(
         select(func.count(User.id)).where(
             User.organization_id == org_id,
             User.is_active == True,
+            User.last_login_at >= thirty_days_ago,
         )
     )
     active_users = result.scalar() or 0
@@ -181,7 +184,9 @@ async def get_usage(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get usage analytics with configurable date range and grouping."""
+    """Get usage analytics with configurable date range and grouping. Owner/admin only."""
+    if user.role not in ("owner", "admin", "super_admin"):
+        raise HTTPException(403, "Admin access required")
     org_id = user.organization_id
     start_date = (date.today() - timedelta(days=days)).isoformat()
 
@@ -390,8 +395,8 @@ async def update_user(
     if target.id == user.id and body.role and body.role != user.role:
         raise HTTPException(400, "Cannot change your own role")
 
-    # Only owners can promote to owner/admin
-    if body.role in ("owner", "admin") and user.role != "owner":
+    # Only owners (and super_admin) can promote to owner/admin
+    if body.role in ("owner", "admin") and user.role not in ("owner", "super_admin"):
         raise HTTPException(403, "Only owners can promote to admin/owner")
 
     if body.role is not None:
@@ -429,20 +434,21 @@ async def invite_user(
     if not org:
         raise HTTPException(404, "Organization not found")
 
-    # Check user limit against tier definition
+    # Check user limit — use org override if set by super-admin, otherwise tier default
     tier_def = get_tier(org.tier)
+    max_users = getattr(org, "max_users", None) or tier_def.max_users
     result = await db.execute(
         select(func.count(User.id)).where(User.organization_id == user.organization_id)
     )
     current_count = result.scalar() or 0
-    if current_count >= tier_def.max_users:
+    if current_count >= max_users:
         raise HTTPException(
             403,
             {
                 "error": "user_limit_reached",
-                "message": f"User limit reached ({tier_def.max_users} on {tier_def.name} plan). Upgrade to add more users.",
+                "message": f"User limit reached ({max_users} on {tier_def.name} plan). Upgrade to add more users.",
                 "current_count": current_count,
-                "max_users": tier_def.max_users,
+                "max_users": max_users,
                 "current_tier": org.tier,
             },
         )

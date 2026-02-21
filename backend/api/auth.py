@@ -607,9 +607,9 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
 
     token, expires_in = create_access_token(user.id, user.organization_id)
 
-    # Redirect to frontend with token in URL fragment (never sent to server)
+    # Redirect to frontend with token in URL fragment (never sent to server/logs)
     return RedirectResponse(
-        url=f"/login?oauth_token={token}",
+        url=f"/login#oauth_token={token}",
         status_code=302,
     )
 

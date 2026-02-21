@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,12 +12,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  // Handle OAuth callback token
+  // Handle OAuth callback token (delivered via URL fragment, never sent to server/logs)
   useEffect(() => {
-    const oauthToken = searchParams.get('oauth_token')
+    const hash = window.location.hash
+    const match = hash.match(/oauth_token=([^&]+)/)
+    const oauthToken = match ? match[1] : null
     if (oauthToken) {
+      // Clear the hash immediately so token isn't visible in URL
+      window.history.replaceState(null, '', window.location.pathname)
       localStorage.setItem('veilchat_token', oauthToken)
-      // Fetch user info with the token
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${oauthToken}` },
       })
@@ -35,7 +37,7 @@ export default function Login() {
           setError('OAuth login failed. Please try again.')
         })
     }
-  }, [searchParams, navigate])
+  }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -184,7 +186,7 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-veil-500"
           />
           {error && (

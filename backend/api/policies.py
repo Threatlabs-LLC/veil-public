@@ -109,7 +109,9 @@ async def create_policy(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new policy."""
+    """Create a new policy. Owner/admin only."""
+    if user.role not in ("owner", "admin", "super_admin"):
+        raise HTTPException(403, "Admin access required to manage policies")
     _validate_action(body.action)
     _validate_severity(body.severity)
 
@@ -155,7 +157,9 @@ async def update_policy(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a policy."""
+    """Update a policy. Owner/admin only."""
+    if user.role not in ("owner", "admin", "super_admin"):
+        raise HTTPException(403, "Admin access required to manage policies")
     result = await db.execute(
         select(Policy).where(
             Policy.id == policy_id,
@@ -196,7 +200,9 @@ async def delete_policy(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a policy."""
+    """Delete a policy. Owner/admin only."""
+    if user.role not in ("owner", "admin", "super_admin"):
+        raise HTTPException(403, "Admin access required to manage policies")
     result = await db.execute(
         select(Policy).where(
             Policy.id == policy_id,
