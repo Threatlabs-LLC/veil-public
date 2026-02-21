@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Lock, Eye, Zap, Globe } from 'lucide-react'
 import { useChat } from '../hooks/useChat'
 import ChatInput from '../components/chat/ChatInput'
@@ -40,6 +40,11 @@ export default function Home() {
       window.history.replaceState(null, '', `/chat/${id}`)
     },
   })
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chat.messages])
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -113,6 +118,7 @@ export default function Home() {
               {chat.messages.map((msg) => (
                 <ChatMessage key={msg.id} message={msg} />
               ))}
+              <div ref={scrollRef} />
             </div>
           )}
         </div>

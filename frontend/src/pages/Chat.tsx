@@ -17,6 +17,7 @@ export default function Chat() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const chat = useChat({
     conversationId: id,
@@ -50,6 +51,10 @@ export default function Chat() {
 
     loadConversation()
   }, [id])
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chat.messages])
 
   const handleRename = async () => {
     if (!id || !titleDraft.trim()) {
@@ -162,6 +167,7 @@ export default function Chat() {
             {chat.messages.map((msg) => (
               <ChatMessage key={msg.id} message={msg} />
             ))}
+            <div ref={scrollRef} />
           </div>
         </div>
 
