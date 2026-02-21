@@ -2,8 +2,23 @@
 
 ## v0.2.0 — Security, Polish & Hardening
 
+### Security Hardening
+- Content Security Policy middleware (CSP, X-Content-Type-Options, X-Frame-Options, HSTS)
+- Admin/owner role gating on settings and user management endpoints
+- OAuth CSRF state validation with SHA-256 hashing and 10-min expiry
+- CORS restricted to configured origins (no wildcard in production)
+- Rate limiter exemptions for /auth/me, /auth/profile, OAuth endpoints
+
+### Testing
+- 486 tests across 10 files (485 pass, 1 pre-existing)
+- Router coverage tests: conversations, api_keys, webhooks, models, settings
+- Cross-org isolation tests, tier gating tests, SSRF validation tests
+
 ### Bug Fixes
 - **Fixed SSE crash**: EntityBadge/EntityDiffView crash when `original` field is absent in streaming responses (null safety)
+- Fixed silent error handlers — API failures now show error toasts instead of swallowing errors
+- Fixed cloud-only code leak (subscription_status, Stripe migrations removed)
+- Fixed outdated contact emails across codebase
 
 ### Feature Gating
 - Per-feature enforcement: custom rules, webhooks, API keys, multi-provider, advanced audit
