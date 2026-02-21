@@ -215,7 +215,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     if result.scalar_one_or_none():
         slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
-    org = Organization(name=org_name, slug=slug, tier="free", subscription_status=None)
+    org = Organization(name=org_name, slug=slug, tier="free")
     db.add(org)
     await db.flush()
 
@@ -581,7 +581,7 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
             if result.scalar_one_or_none():
                 slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
-            org = Organization(name=org_name, slug=slug, tier="free", subscription_status=None)
+            org = Organization(name=org_name, slug=slug, tier="free")
             db.add(org)
             await db.flush()
 

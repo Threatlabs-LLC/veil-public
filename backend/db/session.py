@@ -58,19 +58,6 @@ async def _run_migrations(conn) -> None:
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(50)"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id VARCHAR(255)"))
 
-    # --- organizations table migrations ---
-    org_cols = await conn.run_sync(_get_table_columns("organizations"))
-    if org_cols and "stripe_customer_id" not in org_cols:
-        if is_sqlite:
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN stripe_customer_id VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN stripe_subscription_id VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN subscription_status VARCHAR(50)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN billing_email VARCHAR(255)"))
-        else:
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50)"))
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_email VARCHAR(255)"))
 
 
 async def get_db() -> AsyncSession:
