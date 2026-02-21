@@ -8,7 +8,7 @@ import time
 from datetime import date, datetime, timezone
 from dataclasses import dataclass
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.usage import UsageStat

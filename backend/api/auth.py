@@ -579,7 +579,6 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
             slug = org_name.lower().replace(" ", "-")[:100]
             result = await db.execute(select(Organization).where(Organization.slug == slug))
             if result.scalar_one_or_none():
-                import uuid
                 slug = f"{slug}-{str(uuid.uuid4())[:8]}"
 
             org = Organization(name=org_name, slug=slug, tier="free", subscription_status=None)

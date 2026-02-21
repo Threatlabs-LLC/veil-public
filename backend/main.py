@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.core.events import event_bus
 from backend.db.session import init_db
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -26,8 +29,8 @@ async def lifespan(app: FastAPI):
     try:
         async with async_session() as db:
             await load_webhooks_from_db(db)
-    except Exception:
-        pass  # Don't fail startup if webhook loading fails
+    except Exception as e:
+        logger.warning("Failed to load webhooks on startup: %s", e)
 
     yield
     # Shutdown

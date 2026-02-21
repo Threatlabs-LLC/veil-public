@@ -7,10 +7,10 @@ Events are processed asynchronously to never block the request path.
 import asyncio
 import json
 import logging
-from dataclasses import dataclass, field, asdict
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
 
 import httpx
 
@@ -90,12 +90,12 @@ class EventBus:
     """Async event bus with webhook delivery."""
 
     def __init__(self):
-        self._handlers: list[callable] = []
+        self._handlers: list[Callable] = []
         self._webhooks: list[WebhookConfig] = []
         self._queue: asyncio.Queue | None = None
         self._worker_task: asyncio.Task | None = None
 
-    def register_handler(self, handler: callable) -> None:
+    def register_handler(self, handler: Callable) -> None:
         """Register a sync/async handler for all events."""
         self._handlers.append(handler)
 
