@@ -230,9 +230,13 @@ function RulesTab() {
   const [editing, setEditing] = useState<DetectionRule | null>(null)
   const [form, setForm] = useState<RuleFormData>(emptyRuleForm)
   const [error, setError] = useState('')
+  const [tier, setTier] = useState<string>('free')
 
   const load = () => api.getRules().then(setRules).catch((e) => setError(e.message))
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    api.getQuota().then((q) => setTier(q.tier)).catch(() => { /* tier detection — non-critical */ })
+  }, [])
 
   const openCreate = () => {
     setForm(emptyRuleForm)
@@ -293,7 +297,7 @@ function RulesTab() {
   }
 
   const handleDelete = async (rule: DetectionRule) => {
-    if (!confirm(`Delete rule "${rule.name}"?`)) return
+    if (!window.confirm('Delete this rule? This cannot be undone.')) return
     try {
       await api.deleteRule(rule.id)
       load()
@@ -422,7 +426,16 @@ function RulesTab() {
           </thead>
           <tbody>
             {rules.length === 0 ? (
-              <tr><td colSpan={7} className="p-4 text-center text-gray-500">No rules configured</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center">
+                {tier === 'free' ? (
+                  <div>
+                    <p className="text-gray-400 mb-1">Custom rules let you define organization-specific detection patterns</p>
+                    <p className="text-gray-600 text-xs">Activate a license to unlock custom rules, or click "Add Rule" to try the built-in detection engine.</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No custom rules configured. Click "Add Rule" to create one.</p>
+                )}
+              </td></tr>
             ) : rules.map((rule) => (
               <tr key={rule.id} className="border-t border-gray-700/50 group">
                 <td className="p-3">
@@ -551,7 +564,7 @@ function PoliciesTab() {
   }
 
   const handleDelete = async (policy: PolicyData) => {
-    if (!confirm(`Delete policy "${policy.name}"?`)) return
+    if (!window.confirm('Delete this policy? This cannot be undone.')) return
     try {
       await api.deletePolicy(policy.id)
       load()
@@ -776,8 +789,11 @@ function UsersTab() {
   }
 
   const handleToggleActive = async (user: UserData) => {
-    const action = user.is_active ? 'deactivate' : 'reactivate'
-    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} user "${user.email}"?`)) return
+    if (user.is_active) {
+      if (!window.confirm('Remove this user from the organization?')) return
+    } else {
+      if (!window.confirm(`Reactivate user "${user.email}"?`)) return
+    }
     try {
       await api.updateUser(user.id, { is_active: !user.is_active })
       load()

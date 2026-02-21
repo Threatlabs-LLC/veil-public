@@ -355,7 +355,7 @@ function LicenseSection() {
   }
 
   const handleDeactivate = async () => {
-    if (!confirm('Revert to Community plan? Paid features will be disabled.')) return
+    if (!window.confirm('Revert to Community plan? Paid features will be disabled.')) return
     try {
       await api.deactivateLicense()
       load()
@@ -494,7 +494,7 @@ function ApiKeysSection() {
   }
 
   const handleRevoke = async (key: ApiKeyData) => {
-    if (!confirm(`Revoke API key "${key.name}"? This cannot be undone.`)) return
+    if (!window.confirm('Delete this API key? This cannot be undone.')) return
     try {
       await api.revokeApiKey(key.id)
       load()

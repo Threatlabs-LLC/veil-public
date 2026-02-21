@@ -83,7 +83,7 @@ export default function Webhooks() {
   }
 
   const handleDelete = async (webhook: WebhookData) => {
-    if (!confirm(`Delete webhook "${webhook.name}"?`)) return
+    if (!window.confirm('Delete this webhook? This cannot be undone.')) return
     try {
       await api.deleteWebhook(webhook.id)
       load()

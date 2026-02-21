@@ -78,7 +78,7 @@ export default function Sidebar() {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Delete this conversation? This cannot be undone.')) return
+    if (!window.confirm('Delete this conversation? This cannot be undone.')) return
     try {
       await api.deleteConversation(id)
       setConversations(prev => prev.filter(c => c.id !== id))
@@ -172,8 +172,23 @@ export default function Sidebar() {
       {/* Conversation list */}
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {conversations.length === 0 && (
-          <div className="text-center text-gray-600 text-xs mt-8 px-4">
-            {searchQuery ? 'No matching conversations' : 'No conversations yet. Start a new chat!'}
+          <div className="text-center mt-8 px-4">
+            {searchQuery ? (
+              <p className="text-gray-600 text-xs">No matching conversations</p>
+            ) : (
+              <div className="flex flex-col items-center">
+                <MessageSquare className="w-8 h-8 text-gray-700 mb-2" />
+                <p className="text-gray-400 text-xs mb-1">No conversations yet</p>
+                <p className="text-gray-600 text-[10px] mb-3">Start a new chat to get started!</p>
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-veil-600 hover:bg-veil-700 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  New Chat
+                </button>
+              </div>
+            )}
           </div>
         )}
         {conversations.map((conv) => (
