@@ -2,6 +2,11 @@
 
 ## v0.2.0 — Security, Polish & Hardening
 
+### Audit & Observability
+- Comprehensive audit logging across all security-relevant endpoints (auth, user management, settings, rules, policies, webhooks, API keys, conversations)
+- Webhook event emission for auth failures, provider errors, and usage threshold hits
+- Confirmation dialogs on all destructive actions (delete conversation, revoke key, remove user, delete webhook/rule/policy)
+
 ### Security Hardening
 - Content Security Policy middleware (CSP, X-Content-Type-Options, X-Frame-Options, HSTS)
 - Admin/owner role gating on settings and user management endpoints

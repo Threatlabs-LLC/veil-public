@@ -1,115 +1,165 @@
 # VeilProxy
 
-[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
+[![License: BSL-1.1](https://img.shields.io/badge/License-BSL--1.1-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](docker-compose.yml)
 
-**Enterprise LLM sanitization proxy** — use any AI model at work without leaking sensitive data.
-
-VeilProxy sits between your users and LLM providers, automatically detecting and replacing PII, secrets, and internal data with reversible placeholders. The LLM never sees the real data. Responses are rehydrated transparently.
+VeilProxy is an enterprise LLM sanitization proxy that sits between your application and any LLM provider. It detects sensitive data -- names, emails, SSNs, credit card numbers, API keys, and dozens more entity types -- replaces them with consistent placeholders, forwards the sanitized text to the LLM, and rehydrates the response before it reaches the user. The AI never sees your real data.
 
 ```
 User: "John Smith at john@acme.com called from 192.168.1.50"
-  ↓ VeilProxy detects & replaces
+  |  VeilProxy detects and replaces
 LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
-  ↓ LLM responds with placeholders
-User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
+  |  LLM responds using placeholders
+User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
 ```
 
+## Key Features
+
+- **52+ built-in detection patterns** -- Regex-based detection for PII, financial data, credentials, and more, with optional Presidio/spaCy NER for deeper coverage
+- **Policy engine** -- Configure per-entity-type actions: allow, redact, block, or warn, with customizable confidence thresholds
+- **Real-time streaming** -- SSE streaming with chunk-boundary placeholder rehydration; responses arrive instantly with data restored inline
+- **OpenAI-compatible gateway** -- Drop-in replacement at `/v1/chat/completions`; change one line of code and all existing integrations work
+- **Multi-provider support** -- OpenAI, Anthropic, Ollama, and any OpenAI-compatible API endpoint
+- **Document scanning** -- Upload and scan PDF, DOCX, CSV, XLSX, and TXT files for sensitive data (processed in-memory, never stored)
+- **Audit logging and webhooks** -- Full event bus with async webhook delivery for compliance and monitoring
+- **Multi-user with RBAC** -- Organization-scoped users with role-based access control, Google OAuth, and password reset
+- **Custom detection rules** -- Define organization-specific regex or dictionary patterns through the admin UI or API
+- **Self-hosted via Docker** -- Single container, SQLite by default, PostgreSQL for enterprise scale
+
 ## Quick Start
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Threatlabs-LLC/veil-public.git
 cd veil-public
-cp .env.example .env    # Add your API keys
-docker compose up
 ```
 
-Visit `http://localhost:8000` — register your first user (becomes org admin).
+### 2. Configure environment
 
-> Cloud SaaS is also available at [app.veilproxy.ai](https://app.veilproxy.ai).
+```bash
+cp .env.example .env
+```
 
-## Gateway API
+Edit `.env` and set at minimum:
 
-Drop VeilProxy into existing code — just change the `base_url`:
+```bash
+VEILCHAT_SECRET_KEY=your-random-secret-key
+VEILCHAT_OPENAI_API_KEY=sk-your-key-here       # or use Anthropic/Ollama instead
+```
+
+### 3. Start with Docker Compose
+
+```bash
+docker compose up -d
+```
+
+### 4. Open the app
+
+Navigate to [http://localhost:8000](http://localhost:8000). Register your first account -- the first user becomes the organization admin.
+
+For fully air-gapped deployments, point VeilProxy at a local Ollama instance:
+
+```bash
+VEILCHAT_OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+```
+
+## Gateway Mode
+
+VeilProxy exposes an OpenAI-compatible API at `/v1/chat/completions`. Point any existing OpenAI SDK integration at VeilProxy by changing a single line:
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="vk_your_api_key"
+    base_url="http://localhost:8000/v1",   # <-- point to VeilProxy
+    api_key="vk_your_api_key",
 )
 
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Review John Smith's config at 192.168.1.50"}]
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Summarize this customer record..."}],
 )
 # PII was sanitized before reaching OpenAI, response was rehydrated
 print(response.choices[0].message.content)
 ```
 
-Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible client.
+Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible client. All outbound requests are sanitized automatically. Responses are rehydrated before they reach your code. No other changes required.
 
-## Features
+## How It Works
 
-- **PII Detection** — 52 regex patterns, NER (Presidio/spaCy), and custom dictionary rules
-- **Reversible Pseudonymization** — bidirectional mapping, scoped per conversation
-- **Policy Engine** — per-entity actions: allow, redact, block, or warn
-- **Multi-Provider** — OpenAI, Anthropic, Ollama (fully air-gapped)
-- **Streaming** — SSE with real-time placeholder rehydration
-- **Web Chat UI** — built-in chat interface with live sanitization panel
-- **Document Scanner** — scan PDF, DOCX, TXT, CSV, XLSX for PII
-- **Admin Dashboard** — usage analytics, audit logs, user management
-- **API Keys & Webhooks** — programmatic access and event integrations
-- **Google OAuth** — "Continue with Google" login (configurable)
-- **Password Reset** — SMTP-based email reset flow with branded templates
-- **Health Probes** — `/api/health/live` and `/api/health/ready` for Kubernetes
-
-## Local Models (Air-Gapped)
-
-```bash
-ollama serve && ollama pull llama3.2
-# VeilProxy auto-detects Ollama at localhost:11434
 ```
+User message
+  |
+  v
+Detect (52+ regex patterns + Presidio NER + custom org rules)
+  |
+  v
+Policy evaluation (allow / redact / block / warn per entity type)
+  |
+  v
+Map entities to consistent placeholders (PERSON_001, EMAIL_001, ...)
+  |
+  v
+Forward sanitized text to LLM provider
+  |
+  v
+Stream response back, rehydrating placeholders in real time
+  |
+  v
+User receives clean response with original data restored
+```
+
+Placeholders are consistent within a session -- if "John Smith" maps to `PERSON_001`, every occurrence is replaced and restored the same way, preserving context across multi-turn conversations.
 
 ## Configuration
 
-All settings via environment variables with `VEILCHAT_` prefix. See [`.env.example`](.env.example) for the full reference.
+All environment variables use the `VEILCHAT_` prefix. See [`.env.example`](.env.example) for the full list with comments.
 
-| Variable | Description |
-|---|---|
-| `VEILCHAT_OPENAI_API_KEY` | OpenAI API key |
-| `VEILCHAT_ANTHROPIC_API_KEY` | Anthropic API key |
-| `VEILCHAT_OLLAMA_BASE_URL` | Ollama URL (default: `localhost:11434/v1`) |
-| `VEILCHAT_SECRET_KEY` | JWT signing secret (required in production) |
-| `VEILCHAT_DATABASE_URL` | Database URL (default: SQLite, supports PostgreSQL) |
-| `VEILCHAT_GOOGLE_CLIENT_ID` | Google OAuth client ID (optional) |
-| `VEILCHAT_GOOGLE_CLIENT_SECRET` | Google OAuth client secret (optional) |
-| `VEILCHAT_SMTP_HOST` | SMTP server for password reset emails (optional) |
-| `VEILCHAT_SMTP_FROM_EMAIL` | From address for emails (optional) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VEILCHAT_SECRET_KEY` | Yes | JWT signing key (use a long random string) |
+| `VEILCHAT_OPENAI_API_KEY` | No | OpenAI API key |
+| `VEILCHAT_ANTHROPIC_API_KEY` | No | Anthropic API key |
+| `VEILCHAT_OLLAMA_BASE_URL` | No | Ollama endpoint (default: `http://localhost:11434/v1`) |
+| `VEILCHAT_DATABASE_URL` | No | Default: SQLite. Use `postgresql+asyncpg://...` for production |
+| `VEILCHAT_GOOGLE_CLIENT_ID` | No | Google OAuth client ID for "Continue with Google" |
+| `VEILCHAT_GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
+| `VEILCHAT_SMTP_HOST` | No | SMTP server for password reset emails |
+| `VEILCHAT_SMTP_FROM_EMAIL` | No | From address for outbound emails |
 
-## Licensing
+## Documentation
 
-Open-core model — Free tier runs without any license key. Paid tiers unlock higher limits and enterprise features (more users, custom rules, webhooks, SSO, compliance).
+- [API Reference](docs/API.md) -- Full endpoint documentation
+- [Architecture](docs/ARCHITECTURE.md) -- System design and sanitization pipeline
+- [Deployment Guide](docs/DEPLOYMENT.md) -- Docker, Kubernetes, and reverse proxy configurations
+- [`.env.example`](.env.example) -- All configuration options with comments
 
-See [veilproxy.ai](https://veilproxy.ai) for pricing and tier details.
+## Contributing
 
-## Docs
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions, coding standards, and the pull request process.
 
-- [API Reference](docs/API.md) — full endpoint documentation
-- [Deployment Guide](docs/DEPLOYMENT.md) — Docker, Kubernetes, reverse proxy configs
-- [Architecture](docs/ARCHITECTURE.md) — system design and sanitization pipeline
-- [`.env.example`](.env.example) — all configuration options
+```bash
+# Quick dev setup
+git clone https://github.com/Threatlabs-LLC/veil-public.git && cd veil-public
+pip install -e ".[dev]"
+cd frontend && npm install && cd ..
+cp .env.example .env
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-## Tech Stack
+## Cloud Version
 
-Python 3.12 · FastAPI · SQLAlchemy (async) · React 19 · TypeScript · Vite · Tailwind CSS
+For managed hosting with no infrastructure to maintain, visit [app.veilproxy.ai](https://app.veilproxy.ai). The cloud version includes automatic updates, PostgreSQL storage, and priority support.
 
 ## License
 
-BSL 1.1 — see [LICENSE](LICENSE). Self-hosting for internal use is always permitted. Converts to Apache 2.0 on Feb 20, 2030.
+VeilProxy is licensed under the [Business Source License 1.1](LICENSE) (BSL-1.1).
+
+**What this means:** You can use, modify, and self-host VeilProxy freely for your own internal purposes. The BSL restricts offering it as a competing managed service. The code converts to Apache 2.0 on February 20, 2030. For commercial licensing or enterprise deployments, contact [support@veilproxy.ai](mailto:support@veilproxy.ai).
 
 ---
 
-Built by [Threatlabs LLC](https://github.com/Threatlabs-LLC) · [veilproxy.ai](https://veilproxy.ai)
+Built by [Threatlabs LLC](https://github.com/Threatlabs-LLC) -- [veilproxy.ai](https://veilproxy.ai)
