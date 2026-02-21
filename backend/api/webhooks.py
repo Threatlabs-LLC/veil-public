@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
-from backend.core.events import EventType, VeilChatEvent, WebhookConfig, event_bus
+from backend.core.audit import log_audit_event
+from backend.core.events import EventType, VeilChatEvent, WebhookConfig, event_bus, emit_usage_threshold
 from backend.db.session import get_db
 from backend.licensing.dependencies import require_feature
 from backend.licensing.tiers import FEATURE_WEBHOOKS, get_tier
@@ -93,6 +94,9 @@ async def create_webhook(
     )
     webhook_count = len(existing.scalars().all())
     if webhook_count >= tier_def.max_webhooks:
+        await emit_usage_threshold(
+            user.organization_id, "webhooks", webhook_count, tier_def.max_webhooks,
+        )
         raise HTTPException(
             403,
             f"Webhook limit reached ({tier_def.max_webhooks} on {tier_def.name} plan). "
@@ -130,6 +134,13 @@ async def create_webhook(
     # Register with the event bus
     _register_webhook_with_bus(webhook)
 
+    await log_audit_event(
+        db, user.organization_id, "webhook.created",
+        user_id=user.id,
+        http_status=201,
+        content_after=f"name={body.name}, url={body.url}, format={body.format}",
+    )
+
     return _webhook_to_out(webhook)
 
 
@@ -166,6 +177,13 @@ async def update_webhook(
     if body.is_active is not None:
         webhook.is_active = body.is_active
 
+    await log_audit_event(
+        db, user.organization_id, "webhook.updated",
+        user_id=user.id,
+        http_status=200,
+        content_after=f"webhook={webhook.name}",
+    )
+
     return _webhook_to_out(webhook)
 
 
@@ -186,7 +204,16 @@ async def delete_webhook(
     if not webhook:
         raise HTTPException(404, "Webhook not found")
 
+    webhook_name = webhook.name
     await db.delete(webhook)
+
+    await log_audit_event(
+        db, user.organization_id, "webhook.deleted",
+        user_id=user.id,
+        http_status=200,
+        content_before=f"webhook={webhook_name}",
+    )
+
     return {"status": "deleted"}
 
 

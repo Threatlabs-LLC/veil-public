@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.auth import get_current_user
 from backend.config import settings
 from backend.core.audit import log_audit_event
-from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request
+from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request, emit_provider_error
 from backend.licensing.tiers import FEATURE_MULTI_PROVIDER, tier_has_feature
 from backend.core.mapper import EntityMapper
 from backend.core.policy_engine import evaluate_policies
@@ -287,6 +287,10 @@ async def _stream_response(provider, messages, model, temperature, max_tokens,
 
         except Exception as e:
             tracker.record_error()
+            await emit_provider_error(
+                user.organization_id, user.id,
+                tracker.metrics.provider, model, str(e),
+            )
             error_chunk = {"error": {"message": str(e)}}
             yield f"data: {json.dumps(error_chunk)}\n\n"
 
@@ -332,6 +336,10 @@ async def _blocking_response(provider, messages, model, temperature, max_tokens,
     except Exception as e:
         tracker.record_error()
         tracker.finish()
+        await emit_provider_error(
+            user.organization_id, user.id,
+            tracker.metrics.provider, model, str(e),
+        )
         raise HTTPException(502, {"error": {"message": f"Provider error: {str(e)}"}})
 
     # Rehydrate full response

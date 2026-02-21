@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
 from backend.db.session import get_db
 from backend.models.organization import Organization
 from backend.models.user import User
@@ -131,8 +132,17 @@ async def update_org_profile(
     if not org:
         raise HTTPException(404, "Organization not found")
 
+    old_name = org.name
     if body.name is not None:
         org.name = body.name
+
+    await log_audit_event(
+        db, user.organization_id, "org.profile_updated",
+        user_id=user.id,
+        http_status=200,
+        content_before=old_name,
+        content_after=org.name,
+    )
 
     result = await db.execute(
         sa_select(func.count(User.id)).where(User.organization_id == org.id)
@@ -187,6 +197,15 @@ async def update_settings(
         data["min_confidence"] = body.min_confidence
 
     org.settings = json.dumps(data)
+
+    # Log which settings fields were changed (without exposing values)
+    changed_fields = [k for k, v in body.model_dump(exclude_unset=True).items() if v is not None]
+    await log_audit_event(
+        db, user.organization_id, "org.settings_updated",
+        user_id=user.id,
+        http_status=200,
+        content_after=", ".join(changed_fields),
+    )
 
     from backend.config import settings as global_settings
     from backend.core.crypto import decrypt as _decrypt

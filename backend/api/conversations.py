@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
 from backend.core.crypto import decrypt as _decrypt
 from backend.db.session import get_db
 from backend.licensing.dependencies import require_tier
@@ -248,6 +249,14 @@ async def delete_conversation(
         raise HTTPException(404, "Conversation not found")
 
     conv.status = "archived"
+
+    await log_audit_event(
+        db, user.organization_id, "conversation.archived",
+        user_id=user.id,
+        conversation_id=conversation_id,
+        http_status=200,
+    )
+
     return {"status": "archived"}
 
 

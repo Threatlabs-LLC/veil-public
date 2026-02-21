@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
 from backend.db.session import get_db
 from backend.models.policy import Policy
 from backend.models.user import User
@@ -128,6 +129,14 @@ async def create_policy(
     )
     db.add(policy)
     await db.flush()
+
+    await log_audit_event(
+        db, user.organization_id, "policy.created",
+        user_id=user.id,
+        http_status=201,
+        content_after=f"name={body.name}, entity_type={body.entity_type}, action={body.action}",
+    )
+
     return _policy_to_out(policy)
 
 
@@ -191,6 +200,13 @@ async def update_policy(
     if body.priority is not None:
         policy.priority = body.priority
 
+    await log_audit_event(
+        db, user.organization_id, "policy.updated",
+        user_id=user.id,
+        http_status=200,
+        content_after=f"policy={policy.name}",
+    )
+
     return _policy_to_out(policy)
 
 
@@ -215,5 +231,14 @@ async def delete_policy(
     if policy.is_built_in:
         raise HTTPException(403, "Cannot delete built-in policies")
 
+    policy_name = policy.name
     await db.delete(policy)
+
+    await log_audit_event(
+        db, user.organization_id, "policy.deleted",
+        user_id=user.id,
+        http_status=200,
+        content_before=f"policy={policy_name}",
+    )
+
     return {"status": "deleted"}

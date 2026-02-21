@@ -229,3 +229,37 @@ async def emit_high_risk_request(
         data={"risk_score": risk_score, "reason": reason, **kwargs},
         severity="critical",
     ))
+
+
+async def emit_auth_failure(
+    org_id: str, email: str, reason: str, **kwargs
+) -> None:
+    await event_bus.emit(VeilChatEvent(
+        event_type=EventType.AUTH_FAILURE,
+        org_id=org_id,
+        data={"email": email, "reason": reason, **kwargs},
+        severity="warning",
+    ))
+
+
+async def emit_provider_error(
+    org_id: str, user_id: str, provider: str, model: str, error: str, **kwargs
+) -> None:
+    await event_bus.emit(VeilChatEvent(
+        event_type=EventType.PROVIDER_ERROR,
+        org_id=org_id,
+        user_id=user_id,
+        data={"provider": provider, "model": model, "error": error, **kwargs},
+        severity="critical",
+    ))
+
+
+async def emit_usage_threshold(
+    org_id: str, resource: str, current: int, limit: int, **kwargs
+) -> None:
+    await event_bus.emit(VeilChatEvent(
+        event_type=EventType.USAGE_THRESHOLD,
+        org_id=org_id,
+        data={"resource": resource, "current": current, "limit": limit, **kwargs},
+        severity="warning",
+    ))

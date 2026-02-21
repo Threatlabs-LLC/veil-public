@@ -11,6 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
+from backend.core.events import emit_usage_threshold
 from backend.db.session import get_db
 from backend.licensing.dependencies import require_feature
 from backend.licensing.tiers import FEATURE_CUSTOM_RULES, get_tier
@@ -126,6 +128,9 @@ async def create_rule(
     )
     custom_count = len(existing_count.scalars().all())
     if custom_count >= tier_def.max_custom_rules:
+        await emit_usage_threshold(
+            user.organization_id, "custom_rules", custom_count, tier_def.max_custom_rules,
+        )
         raise HTTPException(
             403,
             f"Custom rule limit reached ({tier_def.max_custom_rules} on {tier_def.name} plan). "
@@ -156,6 +161,13 @@ async def create_rule(
     )
     db.add(rule)
     await db.flush()
+
+    await log_audit_event(
+        db, user.organization_id, "rule.created",
+        user_id=user.id,
+        http_status=201,
+        content_after=f"name={body.name}, type={body.entity_type}, method={body.detection_method}",
+    )
 
     return _rule_to_out(rule)
 
@@ -222,6 +234,13 @@ async def update_rule(
     if body.sample_matches is not None:
         rule.sample_matches = json.dumps(body.sample_matches)
 
+    await log_audit_event(
+        db, user.organization_id, "rule.updated",
+        user_id=user.id,
+        http_status=200,
+        content_after=f"rule={rule.name}",
+    )
+
     return _rule_to_out(rule)
 
 
@@ -245,7 +264,16 @@ async def delete_rule(
     if rule.is_built_in:
         raise HTTPException(403, "Cannot delete built-in rules")
 
+    rule_name = rule.name
     await db.delete(rule)
+
+    await log_audit_event(
+        db, user.organization_id, "rule.deleted",
+        user_id=user.id,
+        http_status=200,
+        content_before=f"rule={rule_name}",
+    )
+
     return {"status": "deleted"}
 
 

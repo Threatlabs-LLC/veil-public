@@ -26,7 +26,7 @@ from backend.core.mapper import EntityMapper
 from backend.core.policy_engine import evaluate_policies
 from backend.core.rehydrator import Rehydrator
 from backend.core.sanitizer import Sanitizer
-from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request
+from backend.core.events import emit_entity_detected, emit_policy_violation, emit_high_risk_request, emit_provider_error
 from backend.core.usage import RequestMetrics, record_usage
 from backend.db.session import get_db, async_session as async_session_factory
 from backend.detectors.registry import create_default_registry
@@ -415,6 +415,10 @@ async def chat(
                         buffer = ""
 
         except Exception as e:
+            await emit_provider_error(
+                org_id, user_id,
+                request.provider, request.model, str(e),
+            )
             yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
             return
 
@@ -796,6 +800,10 @@ async def chat_with_document(
                         buffer = ""
 
         except Exception as e:
+            await emit_provider_error(
+                org_id, user_id,
+                provider, model, str(e),
+            )
             yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
             return
 

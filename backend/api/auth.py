@@ -18,6 +18,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import settings
+from backend.core.audit import log_audit_event
+from backend.core.events import emit_auth_failure
 from backend.db.seed import seed_built_in_data
 from backend.db.session import get_db
 from backend.models.organization import Organization
@@ -43,6 +45,8 @@ def _check_lockout(email: str) -> None:
     if count >= _MAX_FAILED_ATTEMPTS:
         elapsed = (datetime.now(timezone.utc) - first_failure).total_seconds()
         if elapsed < _LOCKOUT_SECONDS:
+            # Fire-and-forget — emit_auth_failure is async but lockout is sync context.
+            # The actual auth.failure event is emitted in the login endpoint handler instead.
             raise HTTPException(
                 429,
                 f"Too many failed login attempts. Try again in {int(_LOCKOUT_SECONDS - elapsed)} seconds.",
@@ -233,6 +237,12 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     # Seed built-in rules and default policies for the new org
     await seed_built_in_data(org.id, db)
 
+    await log_audit_event(
+        db, org.id, "user.registered",
+        user_id=user.id,
+        http_status=200,
+    )
+
     token, expires_in = create_access_token(user.id, org.id)
 
     return TokenResponse(
@@ -258,13 +268,23 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     if not user or not user.password_hash:
         _record_failed_login(request.email)
+        await emit_auth_failure("unknown", request.email, "invalid_credentials")
         raise HTTPException(401, "Invalid email or password")
 
     if not _verify_password(request.password, user.password_hash):
         _record_failed_login(request.email)
+        await log_audit_event(
+            db, user.organization_id, "auth.login_failed",
+            user_id=user.id, http_status=401, error_code="invalid_password",
+        )
+        await emit_auth_failure(user.organization_id, request.email, "invalid_password")
         raise HTTPException(401, "Invalid email or password")
 
     if not user.is_active:
+        await log_audit_event(
+            db, user.organization_id, "auth.login_failed",
+            user_id=user.id, http_status=403, error_code="account_deactivated",
+        )
         raise HTTPException(403, "Account is deactivated")
 
     # Successful login — clear lockout tracking
@@ -272,6 +292,11 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Update last login
     user.last_login_at = datetime.now(timezone.utc)
+
+    await log_audit_event(
+        db, user.organization_id, "auth.login",
+        user_id=user.id, http_status=200,
+    )
 
     token, expires_in = create_access_token(user.id, user.organization_id)
 
@@ -351,6 +376,12 @@ async def change_password(
         raise HTTPException(400, "New password must be at least 8 characters")
 
     user.password_hash = _hash_password(body.new_password)
+
+    await log_audit_event(
+        db, user.organization_id, "auth.password_changed",
+        user_id=user.id, http_status=200,
+    )
+
     return {"status": "password_changed"}
 
 
@@ -470,6 +501,11 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
 
     user.password_hash = _hash_password(body.new_password)
     _reset_tokens.pop(token_hash, None)
+
+    await log_audit_event(
+        db, user.organization_id, "auth.password_reset",
+        user_id=user.id, http_status=200,
+    )
 
     return {"status": "ok", "message": "Password has been reset. You can now sign in."}
 

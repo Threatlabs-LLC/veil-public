@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
+from backend.core.events import emit_usage_threshold
 from backend.db.session import get_db
 from backend.licensing.dependencies import require_feature
 from backend.licensing.tiers import FEATURE_ADVANCED_AUDIT, get_tier
@@ -399,14 +401,25 @@ async def update_user(
     if body.role in ("owner", "admin") and user.role != "owner":
         raise HTTPException(403, "Only owners can promote to admin/owner")
 
+    changes = {}
     if body.role is not None:
         if body.role not in ("owner", "admin", "member"):
             raise HTTPException(400, "Role must be owner, admin, or member")
+        changes["role"] = {"from": target.role, "to": body.role}
         target.role = body.role
     if body.is_active is not None:
         if target.id == user.id:
             raise HTTPException(400, "Cannot deactivate yourself")
+        changes["is_active"] = {"from": target.is_active, "to": body.is_active}
         target.is_active = body.is_active
+
+    await log_audit_event(
+        db, user.organization_id, "user.updated",
+        user_id=user.id,
+        http_status=200,
+        content_before=target.email,
+        content_after=str(changes),
+    )
 
     return UserRow(
         id=target.id,
@@ -442,6 +455,9 @@ async def invite_user(
     )
     current_count = result.scalar() or 0
     if current_count >= max_users:
+        await emit_usage_threshold(
+            user.organization_id, "users", current_count, max_users,
+        )
         raise HTTPException(
             403,
             {
@@ -474,6 +490,13 @@ async def invite_user(
     )
     db.add(new_user)
     await db.flush()
+
+    await log_audit_event(
+        db, user.organization_id, "user.invited",
+        user_id=user.id,
+        http_status=201,
+        content_after=f"email={body.email}, role={body.role}",
+    )
 
     return {
         "id": new_user.id,

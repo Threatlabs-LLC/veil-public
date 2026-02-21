@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.auth import get_current_user
+from backend.core.audit import log_audit_event
 from backend.db.session import get_db
 from backend.models.api_key import ApiKey
 from backend.models.user import User
@@ -87,6 +88,13 @@ async def create_api_key(
     db.add(api_key)
     await db.flush()
 
+    await log_audit_event(
+        db, user.organization_id, "api_key.created",
+        user_id=user.id,
+        http_status=200,
+        content_after=f"name={body.name}, prefix={key_prefix}",
+    )
+
     return {
         "id": api_key.id,
         "name": api_key.name,
@@ -114,4 +122,12 @@ async def revoke_api_key(
         raise HTTPException(404, "API key not found")
 
     key.is_active = False
+
+    await log_audit_event(
+        db, user.organization_id, "api_key.revoked",
+        user_id=user.id,
+        http_status=200,
+        content_before=f"name={key.name}, prefix={key.key_prefix}",
+    )
+
     return {"status": "revoked"}
