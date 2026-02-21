@@ -1,7 +1,7 @@
 # VeilProxy
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
 
 **Enterprise LLM sanitization proxy** — use any AI model at work without leaking sensitive data.
@@ -16,8 +16,6 @@ LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
 User: "John Smith's email john@acme.com was confirmed"  ← rehydrated
 ```
 
-<!-- TODO: Add screenshot of chat UI with sanitization panel -->
-
 ## Quick Start
 
 ```bash
@@ -29,7 +27,7 @@ docker compose up
 
 Visit `http://localhost:8000` — register your first user (becomes org admin).
 
-> **Don't want to self-host?** Try [VeilProxy Cloud](https://app.veilproxy.ai) — same features, fully managed.
+> Cloud SaaS is also available at [app.veilproxy.ai](https://app.veilproxy.ai).
 
 ## Gateway API
 
@@ -55,7 +53,7 @@ Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible cl
 
 ## Features
 
-- **PII Detection** — regex patterns, NER (Presidio/spaCy), and custom dictionary rules
+- **PII Detection** — 52 regex patterns, NER (Presidio/spaCy), and custom dictionary rules
 - **Reversible Pseudonymization** — bidirectional mapping, scoped per conversation
 - **Policy Engine** — per-entity actions: allow, redact, block, or warn
 - **Multi-Provider** — OpenAI, Anthropic, Ollama (fully air-gapped)
@@ -67,8 +65,6 @@ Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible cl
 - **Google OAuth** — "Continue with Google" login (configurable)
 - **Password Reset** — SMTP-based email reset flow with branded templates
 - **Health Probes** — `/api/health/live` and `/api/health/ready` for Kubernetes
-
-<!-- TODO: Add screenshot of admin dashboard -->
 
 ## Local Models (Air-Gapped)
 
@@ -101,8 +97,9 @@ See [veilproxy.ai](https://veilproxy.ai) for pricing and tier details.
 
 ## Docs
 
-- [API Reference](https://veilproxy.ai/docs/) — full endpoint documentation
-- [Deployment Guide](https://veilproxy.ai/deploy/) — Docker, Kubernetes, reverse proxy configs
+- [API Reference](docs/API.md) — full endpoint documentation
+- [Deployment Guide](docs/DEPLOYMENT.md) — Docker, Kubernetes, reverse proxy configs
+- [Architecture](docs/ARCHITECTURE.md) — system design and sanitization pipeline
 - [`.env.example`](.env.example) — all configuration options
 
 ## Tech Stack

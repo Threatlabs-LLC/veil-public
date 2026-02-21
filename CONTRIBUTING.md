@@ -6,7 +6,7 @@ Thanks for your interest in contributing to Veil! This guide covers how to set u
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - Node.js 22+
 - Git
 
@@ -82,7 +82,7 @@ npm run build
 
 - We use [Ruff](https://docs.astral.sh/ruff/) for linting
 - Line length: 100 characters
-- Target: Python 3.11+
+- Target: Python 3.12+
 
 ```bash
 ruff check backend/ --select E,F,W --ignore E402,E501
