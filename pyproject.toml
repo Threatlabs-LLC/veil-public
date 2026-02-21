@@ -1,9 +1,9 @@
 [project]
-name = "veilchat"
-version = "0.1.0"
+name = "veilproxy"
+version = "0.2.0"
 description = "Enterprise LLM sanitization proxy — use any LLM at work with full confidence"
 readme = "README.md"
-license = "MIT"
+license = "BSL-1.1"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",

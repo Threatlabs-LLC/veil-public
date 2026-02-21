@@ -58,10 +58,14 @@ async def list_conversations(
     provider: str | None = None,
     model: str | None = None,
     sort: str = Query("updated_desc", pattern="^(updated_desc|updated_asc|created_desc|created_asc|messages_desc)$"),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List all conversations with optional search and filters."""
-    query = select(Conversation).where(Conversation.status != "archived")
+    query = select(Conversation).where(
+        Conversation.organization_id == user.organization_id,
+        Conversation.status != "archived",
+    )
 
     # Full-text search on title and message content
     if q:
@@ -120,11 +124,15 @@ async def list_conversations(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a conversation with all messages."""
     result = await db.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == user.organization_id,
+        )
     )
     conv = result.scalar_one_or_none()
     if not conv:
@@ -196,11 +204,15 @@ class ConversationUpdate(BaseModel):
 async def update_conversation(
     conversation_id: str,
     body: ConversationUpdate,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update conversation metadata (e.g. rename)."""
     result = await db.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == user.organization_id,
+        )
     )
     conv = result.scalar_one_or_none()
     if not conv:
@@ -221,11 +233,15 @@ async def update_conversation(
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Archive a conversation (soft delete)."""
     result = await db.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == user.organization_id,
+        )
     )
     conv = result.scalar_one_or_none()
     if not conv:
@@ -240,11 +256,15 @@ async def delete_conversation(
 async def export_conversation(
     conversation_id: str,
     format: str = Query("json", pattern="^(json|csv)$"),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Export a conversation as JSON or CSV."""
     result = await db.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == user.organization_id,
+        )
     )
     conv = result.scalar_one_or_none()
     if not conv:

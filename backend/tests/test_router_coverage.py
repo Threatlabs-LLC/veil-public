@@ -271,14 +271,14 @@ class TestConversationsAPI:
         )
         assert res.status_code == 403
 
-    async def test_other_user_can_access_conversations(self, client):
-        """In self-hosted mode, conversations are not org-isolated."""
+    async def test_cross_org_conversation_isolation(self, client):
+        """Conversations are org-isolated — user from another org gets 404."""
         token1, conv_id = await self._setup(client)
         data2 = await register_user(client, email=f"conv-other-{id(self)}@test.com",
                                      org_name="Other Org")
         token2 = data2["access_token"]
         res = await client.get(f"/api/conversations/{conv_id}", headers=auth_headers(token2))
-        assert res.status_code == 200
+        assert res.status_code == 404
 
 
 # ── API Keys Tests ───────────────────────────────────────────────────

@@ -92,7 +92,7 @@ jobs:
 
             ```bash
             git clone https://github.com/${{ github.repository }}.git
-            cd veilchat
+            cd veil-public
             cp .env.example .env
             # Edit .env with your API keys
             docker compose up -d

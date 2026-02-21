@@ -1,5 +1,5 @@
 services:
-  veilchat:
+  veil:
     build:
       context: .
       args:
@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - veilchat-data:/app/data
+      - veil-data:/app/data
       - ./keys/public_key.pem:/app/keys/public_key.pem:ro
     environment:
       - VEILCHAT_DEBUG=false
@@ -26,4 +26,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  veilchat-data:
+  veil-data:

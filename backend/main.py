@@ -174,8 +174,11 @@ if static_dir.exists():
         # Never intercept API or gateway routes
         if path.startswith("api/") or path.startswith("v1/"):
             raise HTTPException(404, "Not Found")
+        # Path traversal protection: resolve and verify path stays within static_dir
+        file_path = (static_dir / path).resolve()
+        if not str(file_path).startswith(str(static_dir.resolve())):
+            raise HTTPException(400, "Invalid path")
         # If a real static file exists, serve it
-        file_path = static_dir / path
         if file_path.is_file():
             return FileResponse(file_path)
         # Otherwise serve index.html and let React Router handle it

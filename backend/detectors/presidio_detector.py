@@ -3,7 +3,7 @@
 Wraps Microsoft Presidio's AnalyzerEngine with spaCy NER backend.
 Gracefully degrades if presidio or spaCy are not installed.
 
-Install with: pip install veilchat[ner]
+Install with: pip install veilproxy[ner]
 Then download the spaCy model: python -m spacy download en_core_web_md
 """
 
@@ -133,7 +133,7 @@ def _try_load_presidio() -> AnalyzerEngine | None:
         return engine
 
     except ImportError:
-        logger.info("Presidio not installed — NER detector disabled. Install with: pip install veilchat[ner]")
+        logger.info("Presidio not installed — NER detector disabled. Install with: pip install veilproxy[ner]")
         return None
     except OSError:
         # spaCy model not downloaded

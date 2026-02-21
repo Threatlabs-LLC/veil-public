@@ -1,7 +1,7 @@
 """API Gateway mode — transparent OpenAI-compatible proxy with sanitization.
 
 Users change one line of code:
-    client = OpenAI(base_url="https://your-veilchat.com/v1")
+    client = OpenAI(base_url="https://your-veilproxy.com/v1")
 
 All existing code works unchanged. Sanitization happens transparently.
 Responses are rehydrated before returning to the client.
@@ -368,7 +368,7 @@ async def _blocking_response(provider, messages, model, temperature, max_tokens,
             "completion_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens,
         },
-        "x_veilchat": {
+        "x_veilproxy": {
             "entities_detected": tracker.metrics.entities_detected,
             "cost_usd": tracker.cost_display,
         },
