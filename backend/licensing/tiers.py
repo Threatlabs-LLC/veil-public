@@ -20,6 +20,7 @@ FEATURE_HIPAA = "hipaa"
 FEATURE_CUSTOM_NER = "custom_ner"
 FEATURE_DATA_RESIDENCY = "data_residency"
 FEATURE_PRIORITY_SUPPORT = "priority_support"
+FEATURE_FQDN_DETECTION = "fqdn_detection"
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,7 @@ TIERS: dict[str, TierDefinition] = {
             FEATURE_SSO,
             FEATURE_HIPAA,
             FEATURE_DATA_RESIDENCY,
+            FEATURE_FQDN_DETECTION,
         }),
     ),
     "enterprise": TierDefinition(
@@ -114,6 +116,7 @@ TIERS: dict[str, TierDefinition] = {
             FEATURE_HIPAA,
             FEATURE_DATA_RESIDENCY,
             FEATURE_CUSTOM_NER,
+            FEATURE_FQDN_DETECTION,
             FEATURE_PRIORITY_SUPPORT,
         }),
     ),

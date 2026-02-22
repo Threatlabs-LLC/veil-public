@@ -203,7 +203,7 @@ async def chat(
     custom_rules = rules_result.scalars().all()
 
     # Create sanitizer with custom rules
-    registry = create_default_registry(custom_rules=custom_rules)
+    registry = create_default_registry(custom_rules=custom_rules, org_tier=org_tier)
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
 
     # Sanitize the user message
@@ -589,7 +589,7 @@ async def chat_with_document(
     custom_rules = rules_result.scalars().all()
 
     # Create sanitizer with custom rules
-    registry = create_default_registry(custom_rules=custom_rules)
+    registry = create_default_registry(custom_rules=custom_rules, org_tier=org_tier)
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
 
     # Sanitize the combined text

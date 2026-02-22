@@ -27,6 +27,7 @@ from backend.core.mapper import EntityMapper
 from backend.core.sanitizer import Sanitizer
 from backend.db.session import get_db
 from backend.detectors.registry import create_default_registry
+from backend.models.organization import Organization
 from backend.models.rule import DetectionRule
 from backend.models.user import User
 
@@ -90,8 +91,12 @@ async def sanitize_text(
     )
     custom_rules = rules_result.scalars().all()
 
+    # Determine org tier for feature-gated detectors
+    org = await db.get(Organization, user.organization_id)
+    org_tier = org.tier if org else "free"
+
     # Create sanitizer
-    registry = create_default_registry(custom_rules=custom_rules)
+    registry = create_default_registry(custom_rules=custom_rules, org_tier=org_tier)
     mapper = EntityMapper(session_id=str(uuid.uuid4()))
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
 
@@ -152,8 +157,12 @@ async def sanitize_batch(
     )
     custom_rules = rules_result.scalars().all()
 
+    # Determine org tier for feature-gated detectors
+    org = await db.get(Organization, user.organization_id)
+    org_tier = org.tier if org else "free"
+
     # Shared mapper across all texts (consistent placeholders)
-    registry = create_default_registry(custom_rules=custom_rules)
+    registry = create_default_registry(custom_rules=custom_rules, org_tier=org_tier)
     mapper = EntityMapper(session_id=str(uuid.uuid4()))
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
 

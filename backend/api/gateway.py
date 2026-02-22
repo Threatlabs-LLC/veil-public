@@ -96,7 +96,7 @@ async def gateway_chat_completions(
     # Create a transient mapping session for this request
     session_id = str(uuid.uuid4())
     mapper = EntityMapper(session_id=session_id)
-    registry = create_default_registry(custom_rules=custom_rules)
+    registry = create_default_registry(custom_rules=custom_rules, org_tier=org_tier)
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
     rehydrator = Rehydrator(mapper=mapper)
 

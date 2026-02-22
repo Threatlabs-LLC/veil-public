@@ -127,6 +127,16 @@ DEFAULT_POLICIES = [
         "priority": 2,
     },
     {
+        "name": "Warn on internal FQDNs",
+        "description": "Flag internal domain names (deep subdomains, AD domains) for review before sending to LLM",
+        "entity_type": "FQDN",
+        "action": "warn",
+        "severity": "medium",
+        "notify": False,
+        "min_confidence": 0.7,
+        "priority": 50,
+    },
+    {
         "name": "Redact all PII by default",
         "description": "Replace all detected PII with placeholders before sending to LLM",
         "entity_type": "*",

@@ -62,14 +62,21 @@ class DetectorRegistry:
         return result
 
 
-def create_default_registry(custom_rules=None) -> DetectorRegistry:
+def create_default_registry(custom_rules=None, org_tier: str = "free") -> DetectorRegistry:
     """Create a registry with the default set of detectors.
 
     Args:
         custom_rules: Optional list of DetectionRule objects from the DB.
+        org_tier: Organization tier name for feature-gated detectors.
     """
     registry = DetectorRegistry()
     registry.register(RegexDetector())
+
+    # Add FQDN detector for Business+ tiers
+    from backend.licensing.tiers import FEATURE_FQDN_DETECTION, tier_has_feature
+    if tier_has_feature(org_tier, FEATURE_FQDN_DETECTION):
+        from backend.detectors.fqdn_detector import FQDNDetector
+        registry.register(FQDNDetector())
 
     # Add Presidio/spaCy NER detector if available
     from backend.detectors.presidio_detector import get_presidio_detector

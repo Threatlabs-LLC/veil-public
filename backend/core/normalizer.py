@@ -88,4 +88,5 @@ NORMALIZERS = {
     "CONNECTION_STRING": _normalize_default,
     "ORGANIZATION": _normalize_default,
     "ADDRESS": _normalize_default,
+    "FQDN": _normalize_default,
 }

@@ -65,7 +65,13 @@ async def scan_document(
 
     # Sanitize the extracted text
     org_id = user.organization_id
-    registry = create_default_registry()
+
+    # Determine org tier for feature-gated detectors
+    from backend.models.organization import Organization
+    org = await db.get(Organization, org_id)
+    org_tier = org.tier if org else "free"
+
+    registry = create_default_registry(org_tier=org_tier)
     mapper = EntityMapper(session_id=f"doc-scan-{file.filename}")
     sanitizer = Sanitizer(registry=registry, mapper=mapper)
     result = sanitizer.sanitize(extracted.text)
