@@ -444,7 +444,10 @@ class TestUserManagement:
     async def test_list_users(self, new_client, auth_headers):
         res = await new_client.get("/api/admin/users", headers=auth_headers)
         assert res.status_code == 200
-        users = res.json()
+        data = res.json()
+        assert "users" in data
+        assert "total" in data
+        users = data["users"]
         assert len(users) >= 1
         assert users[0]["email"] == "test@example.com"
 

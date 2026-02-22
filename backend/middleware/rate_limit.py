@@ -19,35 +19,12 @@ from starlette.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-# Redis client — lazy-initialized
-_redis_client = None
-_redis_checked = False
+# Shared Redis client from state_store (lazy-initialized)
+from backend.core.state_store import _get_redis
 
 
-def _get_redis():
-    """Lazy-init Redis client if configured."""
-    global _redis_client, _redis_checked
-    if _redis_checked:
-        return _redis_client
-
-    _redis_checked = True
-    from backend.config import settings
-    if settings.redis_url:
-        try:
-            import redis
-            _redis_client = redis.from_url(settings.redis_url, decode_responses=True)
-            _redis_client.ping()
-            logger.info("Rate limiter using Redis backend")
-        except Exception as e:
-            logger.warning(f"Redis connection failed, falling back to in-memory: {e}")
-            _redis_client = None
-    return _redis_client
-
-
-# Lightweight org tier cache: {org_id: (tier, expiry_time)}
-# Avoids DB hit on every request. Refreshed every 5 minutes.
-_org_tier_cache: dict[str, tuple[str, float]] = {}
-_TIER_CACHE_TTL = 300  # 5 minutes
+# Tier cache TTL — uses state_store so all workers share via Redis
+_TIER_CACHE_TTL = 60  # 1 minute
 
 
 def _extract_org_id(request: Request) -> str | None:
@@ -67,11 +44,16 @@ def _extract_org_id(request: Request) -> str | None:
 
 
 async def _get_org_tier(org_id: str) -> str:
-    """Get org tier with caching. Falls back to 'free' on any error."""
-    now = time.time()
-    cached = _org_tier_cache.get(org_id)
-    if cached and cached[1] > now:
-        return cached[0]
+    """Get org tier with caching via state_store (shared across workers).
+
+    Falls back to 'free' on any error.
+    """
+    from backend.core import state_store
+
+    cache_key = f"veil:tier:{org_id}"
+    cached = state_store.get(cache_key)
+    if cached:
+        return cached
 
     try:
         from backend.db.session import async_session
@@ -79,7 +61,7 @@ async def _get_org_tier(org_id: str) -> str:
         async with async_session() as db:
             org = await db.get(Organization, org_id)
             tier = org.tier if org else "free"
-        _org_tier_cache[org_id] = (tier, now + _TIER_CACHE_TTL)
+        state_store.set(cache_key, tier, ttl_seconds=_TIER_CACHE_TTL)
         return tier
     except Exception:
         return "free"
@@ -103,6 +85,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # In-memory fallback: {bucket_key: [timestamps]}
         self._requests: dict[str, list[float]] = defaultdict(list)
         self._window = 60  # 1 minute window (seconds)
+        # Periodic cleanup to prevent memory leaks from stale keys
+        self._request_count = 0
+        self._cleanup_every = 500
 
     def _get_limit(self, path: str, tier: str) -> int:
         """Get rate limit based on path and org tier."""
@@ -154,6 +139,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return True, 0
 
         self._requests[key].append(now)
+
+        # Periodic cleanup of stale keys to prevent unbounded memory growth
+        self._request_count += 1
+        if self._request_count >= self._cleanup_every:
+            self._request_count = 0
+            stale = [k for k, ts in self._requests.items() if not ts or ts[-1] < cutoff]
+            for k in stale:
+                del self._requests[k]
+
         return False, limit - current_count - 1
 
     async def dispatch(self, request: Request, call_next):

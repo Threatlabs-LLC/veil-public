@@ -235,9 +235,12 @@ async def gateway_chat_completions(
         llm_messages.insert(0, ChatMessage(role="system", content=sanitization_system))
 
     if stream:
+        # Release DB session before streaming to free the connection pool slot.
+        # The stream generator creates its own session for usage recording.
+        await db.close()
         return await _stream_response(
             provider, llm_messages, model, temperature, max_tokens,
-            rehydrator, tracker, user, db,
+            rehydrator, tracker, user,
         )
     else:
         return await _blocking_response(
@@ -247,7 +250,7 @@ async def gateway_chat_completions(
 
 
 async def _stream_response(provider, messages, model, temperature, max_tokens,
-                           rehydrator, tracker, user, db):
+                           rehydrator, tracker, user):
     """Stream response in OpenAI SSE format with rehydration."""
     response_id = f"chatcmpl-{uuid.uuid4().hex[:29]}"
 

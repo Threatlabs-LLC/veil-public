@@ -259,7 +259,8 @@ export const api = {
   async getUsers(): Promise<Array<{ id: string; email: string; display_name: string | null; role: string; is_active: boolean; last_login_at: string | null; created_at: string }>> {
     const res = await authFetch(`${BASE_URL}/admin/users`)
     if (!res.ok) await throwServerError(res, 'Failed to load users')
-    return res.json()
+    const data = await res.json()
+    return data.users ?? data  // supports paginated {users:[...]} and legacy array
   },
 
   async updateUser(id: string, data: { role?: string; is_active?: boolean }): Promise<unknown> {

@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     document_upload_enabled: bool = True
     max_document_size_mb: int = 10
 
-    # Redis (optional — for distributed rate limiting)
+    # Redis (optional — for distributed rate limiting + auth state across workers)
     redis_url: str = ""
 
     model_config = {"env_prefix": "VEILCHAT_", "env_file": str(_PROJECT_ROOT / ".env")}

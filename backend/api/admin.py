@@ -304,6 +304,7 @@ async def get_entity_stats(
         )
         .group_by(Entity.entity_type, Entity.detection_method)
         .order_by(func.count(Entity.id).desc())
+        .limit(100)
     )
 
     rows = result.all()
@@ -333,32 +334,46 @@ async def get_entity_stats(
 
 @router.get("/users")
 async def list_users(
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all users in the organization."""
+    """List users in the organization with pagination."""
     if user.role not in ("owner", "admin"):
         raise HTTPException(403, "Admin access required")
+
+    # Total count
+    count_result = await db.execute(
+        select(func.count(User.id)).where(User.organization_id == user.organization_id)
+    )
+    total = count_result.scalar() or 0
 
     result = await db.execute(
         select(User)
         .where(User.organization_id == user.organization_id)
         .order_by(User.created_at)
+        .limit(limit)
+        .offset(offset)
     )
     users = result.scalars().all()
 
-    return [
-        UserRow(
-            id=u.id,
-            email=u.email,
-            display_name=u.display_name,
-            role=u.role,
-            is_active=u.is_active,
-            last_login_at=str(u.last_login_at) if u.last_login_at else None,
-            created_at=str(u.created_at),
-        )
-        for u in users
-    ]
+    return {
+        "total": total,
+        "offset": offset,
+        "users": [
+            UserRow(
+                id=u.id,
+                email=u.email,
+                display_name=u.display_name,
+                role=u.role,
+                is_active=u.is_active,
+                last_login_at=str(u.last_login_at) if u.last_login_at else None,
+                created_at=str(u.created_at),
+            )
+            for u in users
+        ],
+    }
 
 
 class UserUpdate(BaseModel):

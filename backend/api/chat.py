@@ -378,22 +378,35 @@ async def chat(
     # Create rehydrator
     rehydrator = Rehydrator(mapper=mapper)
 
+    # Capture values needed by the generator before releasing the session
+    conv_id = conv.id
+    user_message = request.message
+    req_provider = request.provider
+    req_model = request.model
+    req_temperature = request.temperature
+    req_max_tokens = request.max_tokens
+    entity_count = result.entity_count
+    sanitization_dict = result.to_dict(include_originals=False)
+
+    # Release DB session before streaming to free the connection pool slot
+    await db.close()
+
     # Stream response
     async def generate_sse() -> AsyncIterator[str]:
         # First event: sanitization results (omit originals from SSE to reduce PII exposure)
-        yield f"event: sanitization\ndata: {json.dumps(result.to_dict(include_originals=False))}\n\n"
+        yield f"event: sanitization\ndata: {json.dumps(sanitization_dict)}\n\n"
 
         full_response = ""
-        model_used = request.model
+        model_used = req_model
         start_time = time.time()
         buffer = ""
 
         try:
             async for chunk in provider.chat_stream(
                 messages=llm_messages,
-                model=request.model,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
+                model=req_model,
+                temperature=req_temperature,
+                max_tokens=req_max_tokens,
             ):
                 if chunk.model:
                     model_used = chunk.model
@@ -417,7 +430,7 @@ async def chat(
         except Exception as e:
             await emit_provider_error(
                 org_id, user_id,
-                request.provider, request.model, str(e),
+                req_provider, req_model, str(e),
             )
             yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
             return
@@ -430,7 +443,7 @@ async def chat(
         # Save assistant message
         async with async_session_factory() as save_db:
             assistant_msg = Message(
-                conversation_id=conv.id,
+                conversation_id=conv_id,
                 organization_id=org_id,
                 sequence_number=seq_num + 1,
                 role="assistant",
@@ -445,19 +458,19 @@ async def chat(
             await log_audit_event(
                 save_db, org_id, "llm.response",
                 user_id=user_id,
-                conversation_id=conv.id,
-                provider=request.provider,
-                model_requested=request.model,
+                conversation_id=conv_id,
+                provider=req_provider,
+                model_requested=req_model,
                 model_used=model_used,
                 latency_ms=latency_ms,
             )
 
             # Update conversation
-            update_conv = await save_db.get(Conversation, conv.id)
+            update_conv = await save_db.get(Conversation, conv_id)
             if update_conv:
                 update_conv.total_messages = seq_num + 1
-                if not update_conv.title and len(request.message) > 0:
-                    update_conv.title = request.message[:100]
+                if not update_conv.title and len(user_message) > 0:
+                    update_conv.title = user_message[:100]
 
             # Record usage metrics
             input_tokens = sum(len(m.content) // 4 for m in llm_messages)
@@ -466,12 +479,12 @@ async def chat(
                 await record_usage(save_db, RequestMetrics(
                     org_id=org_id,
                     user_id=user_id,
-                    provider=request.provider,
-                    model=request.model,
+                    provider=req_provider,
+                    model=req_model,
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
-                    entities_detected=result.entity_count,
-                    entities_sanitized=result.entity_count,
+                    entities_detected=entity_count,
+                    entities_sanitized=entity_count,
                     latency_ms=latency_ms,
                 ))
             except Exception as exc:
@@ -480,7 +493,7 @@ async def chat(
             await save_db.commit()
 
         # Final event with metadata
-        yield f"event: done\ndata: {json.dumps({'conversation_id': conv.id, 'message_id': str(uuid.uuid4()), 'model': model_used, 'latency_ms': latency_ms, 'entities_detected': result.entity_count})}\n\n"
+        yield f"event: done\ndata: {json.dumps({'conversation_id': conv_id, 'message_id': str(uuid.uuid4()), 'model': model_used, 'latency_ms': latency_ms, 'entities_detected': entity_count})}\n\n"
 
     return StreamingResponse(
         generate_sse(),
@@ -763,12 +776,26 @@ async def chat_with_document(
     # Create rehydrator
     rehydrator = Rehydrator(mapper=mapper)
 
+    # Capture values needed by the generator before releasing the session
+    conv_id = conv.id
+    entity_count = result.entity_count
+    sanitization_dict = result.to_dict(include_originals=False)
+    doc_meta = {
+        'filename': extracted.filename, 'file_type': extracted.file_type,
+        'char_count': extracted.char_count, 'page_count': extracted.page_count,
+        'entities_detected': entity_count,
+    }
+    doc_filename = file.filename
+
+    # Release DB session before streaming to free the connection pool slot
+    await db.close()
+
     # Stream response
     async def generate_sse() -> AsyncIterator[str]:
-        yield f"event: sanitization\ndata: {json.dumps(result.to_dict(include_originals=False))}\n\n"
+        yield f"event: sanitization\ndata: {json.dumps(sanitization_dict)}\n\n"
 
         # Include document metadata in stream
-        yield f"event: document\ndata: {json.dumps({'filename': extracted.filename, 'file_type': extracted.file_type, 'char_count': extracted.char_count, 'page_count': extracted.page_count, 'entities_detected': result.entity_count})}\n\n"
+        yield f"event: document\ndata: {json.dumps(doc_meta)}\n\n"
 
         full_response = ""
         model_used = model
@@ -812,7 +839,7 @@ async def chat_with_document(
 
         async with async_session_factory() as save_db:
             assistant_msg = Message(
-                conversation_id=conv.id,
+                conversation_id=conv_id,
                 organization_id=org_id,
                 sequence_number=seq_num + 1,
                 role="assistant",
@@ -826,18 +853,18 @@ async def chat_with_document(
             await log_audit_event(
                 save_db, org_id, "llm.response",
                 user_id=user_id,
-                conversation_id=conv.id,
+                conversation_id=conv_id,
                 provider=provider,
                 model_requested=model,
                 model_used=model_used,
                 latency_ms=latency_ms,
             )
 
-            update_conv = await save_db.get(Conversation, conv.id)
+            update_conv = await save_db.get(Conversation, conv_id)
             if update_conv:
                 update_conv.total_messages = seq_num + 1
                 if not update_conv.title:
-                    update_conv.title = f"Document: {file.filename}"[:100]
+                    update_conv.title = f"Document: {doc_filename}"[:100]
 
             input_tokens = sum(len(m.content) // 4 for m in llm_messages)
             output_tokens = len(full_response) // 4
@@ -849,8 +876,8 @@ async def chat_with_document(
                     model=model,
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
-                    entities_detected=result.entity_count,
-                    entities_sanitized=result.entity_count,
+                    entities_detected=entity_count,
+                    entities_sanitized=entity_count,
                     latency_ms=latency_ms,
                 ))
             except Exception as exc:
@@ -858,7 +885,7 @@ async def chat_with_document(
 
             await save_db.commit()
 
-        yield f"event: done\ndata: {json.dumps({'conversation_id': conv.id, 'message_id': str(uuid.uuid4()), 'model': model_used, 'latency_ms': latency_ms, 'entities_detected': result.entity_count})}\n\n"
+        yield f"event: done\ndata: {json.dumps({'conversation_id': conv_id, 'message_id': str(uuid.uuid4()), 'model': model_used, 'latency_ms': latency_ms, 'entities_detected': entity_count})}\n\n"
 
     return StreamingResponse(
         generate_sse(),

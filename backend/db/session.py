@@ -2,11 +2,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from backend.config import settings
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=settings.debug,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
-)
+_engine_kwargs: dict = {"echo": settings.debug}
+if "sqlite" in settings.database_url:
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    # PostgreSQL: explicit connection pool limits
+    _engine_kwargs["pool_size"] = 5
+    _engine_kwargs["max_overflow"] = 10
+    _engine_kwargs["pool_pre_ping"] = True      # verify connections are alive
+    _engine_kwargs["pool_recycle"] = 1800        # recycle every 30 minutes
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -61,11 +67,19 @@ async def _run_migrations(conn) -> None:
 
 
 async def get_db() -> AsyncSession:
-    """FastAPI dependency for database sessions."""
+    """FastAPI dependency for database sessions.
+
+    Streaming endpoints may call ``await session.close()`` before returning
+    their ``StreamingResponse`` to release the connection back to the pool
+    early.  The cleanup below handles that case gracefully.
+    """
     async with async_session() as session:
         try:
             yield session
             await session.commit()
         except Exception:
-            await session.rollback()
+            try:
+                await session.rollback()
+            except Exception:
+                pass  # session may already be closed (streaming endpoints)
             raise
