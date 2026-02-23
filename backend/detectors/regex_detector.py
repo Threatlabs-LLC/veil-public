@@ -249,7 +249,7 @@ PATTERNS: list[PatternDef] = [
         pattern=re.compile(
             r"""(?:api[_\-]?key|api[_\-]?secret|access[_\-]?token|"""
             r"""auth[_\-]?token|secret[_\-]?key|password|passwd|pwd)"""
-            r"""[\s]*[=:]\s*['"]?([a-zA-Z0-9\-_.]{16,})['"]?""",
+            r"""[\s]*[=:]\s*['"]?([^\s'"]{8,})['"]?""",
             re.IGNORECASE,
         ),
         confidence=0.90,
