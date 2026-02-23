@@ -507,6 +507,23 @@ export const api = {
     return res.json()
   },
 
+  // --- Quota Usage ---
+
+  async getQuota(): Promise<{
+    tier: string; tier_name: string;
+    users: { current: number; limit: number };
+    custom_rules: { current: number; limit: number };
+    webhooks: { current: number; limit: number };
+    api_keys: { current: number };
+    audit_retention_days: number;
+    api_rate_limit: number;
+    gateway_rate_limit: number;
+  }> {
+    const res = await authFetch(`${BASE_URL}/usage/quota`)
+    if (!res.ok) throw new Error('Failed to load quota')
+    return res.json()
+  },
+
   // --- Billing (cloud mode) ---
 
   async getSubscription(): Promise<{

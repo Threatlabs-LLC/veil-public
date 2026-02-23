@@ -19,6 +19,13 @@ async def lifespan(app: FastAPI):
     from backend.core.logging import setup_logging
     setup_logging(json_output=not settings.debug, level="DEBUG" if settings.debug else "INFO")
 
+    # Reject insecure default secret key in production
+    if not settings.debug and settings.secret_key == "CHANGE-ME-IN-PRODUCTION":
+        raise RuntimeError(
+            "FATAL: VEILCHAT_SECRET_KEY is set to the default value. "
+            "Set a strong random secret via environment variable before running in production."
+        )
+
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     await init_db()
     await event_bus.start()
@@ -144,6 +151,7 @@ from backend.api.models import router as models_router  # noqa: E402
 from backend.api.licensing import router as licensing_router  # noqa: E402
 from backend.api.sanitize import router as sanitize_router  # noqa: E402
 from backend.api.documents import router as documents_router  # noqa: E402
+from backend.api.usage import router as usage_router  # noqa: E402
 
 app.include_router(chat_router, prefix="/api")
 app.include_router(conversations_router, prefix="/api")
@@ -159,6 +167,7 @@ app.include_router(models_router, prefix="/api")
 app.include_router(licensing_router, prefix="/api")
 app.include_router(sanitize_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
+app.include_router(usage_router, prefix="/api")
 
 # Serve frontend static files in production
 static_dir = Path(__file__).parent.parent / "static"
