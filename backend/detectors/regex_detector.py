@@ -131,13 +131,26 @@ PATTERNS: list[PatternDef] = [
         validator=lambda s: _luhn_check(re.sub(r"[\s\-]", "", s)),
     ),
 
-    # --- SSN (US) ---
+    # --- SSN (US) — requires at least one separator to avoid matching bare digit sequences ---
+    # With dashes or spaces (the standard SSN format people actually write)
     PatternDef(
         entity_type="SSN",
         pattern=re.compile(
-            r"\b(?!000|666|9\d{2})\d{3}[\-\s]?(?!00)\d{2}[\-\s]?(?!0000)\d{4}\b"
+            r"\b(?!000|666|9\d{2})\d{3}[-\s](?!00)\d{2}[-\s](?!0000)\d{4}\b"
         ),
-        confidence=0.85,
+        confidence=0.95,
+    ),
+    # Bare 9-digit SSN — only when preceded by a context keyword
+    PatternDef(
+        entity_type="SSN",
+        pattern=re.compile(
+            r"(?:SSN|Social\s*Security(?:\s*(?:Number|No\.?|#))?)"
+            r"\s*[:=]?\s+"
+            r"(?!000|666|9\d{2})\d{3}(?!00)\d{2}(?!0000)\d{4}\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+        entity_subtype="CONTEXT",
     ),
 
     # --- Phone Numbers ---
@@ -626,6 +639,110 @@ PATTERNS: list[PatternDef] = [
         ),
         confidence=0.82,
         entity_subtype="APPLIANCE",
+    ),
+
+    # =====================================================================
+    # Street Addresses
+    # =====================================================================
+
+    # --- US Street Address with standard suffix ---
+    # Matches: "123 Main Street", "5678 N. Oak Ave, Suite 100"
+    # Requires: street number + 1-4 name words + recognized street suffix
+    PatternDef(
+        entity_type="ADDRESS",
+        pattern=re.compile(
+            r"(?<!\.)\b\d{1,6}\s+"                                       # Street number (not after dot, e.g. IP)
+            r"(?:(?:N|S|E|W|NE|NW|SE|SW|North|South|East|West)\.?\s+)?"  # Optional directional
+            r"(?:"
+            r"(?:\d{1,3}(?:st|nd|rd|th)\s+)"                             # Ordinal street name (e.g. "45th")
+            r"|"
+            r"(?:[A-Za-z][A-Za-z']+\s+)"                                 # Word street name
+            r"){1,4}"
+            r"(?:Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Road|Rd|"
+            r"Lane|Ln|Way|Court|Ct|Place|Pl|Circle|Cir|Trail|Trl|"
+            r"Terrace|Ter|Parkway|Pkwy|Highway|Hwy|Pike|Loop|Run|"
+            r"Path|Crossing|Xing|Commons|Point|Square|Sq|Alley|Aly)"
+            r"\b\.?"
+            r"(?:\s*,?\s*"                                                # Optional unit (Apt, Suite, etc.)
+            r"(?:Suite|Ste|Apt|Apartment|Unit|#|Bldg|Building|Floor|Fl|Room|Rm)"
+            r"\.?\s*#?\s*\w{1,6})?"
+            r"(?:\s*,\s*[A-Za-z][A-Za-z\s\.]{1,30}?"                     # Optional City
+            r",\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?",                        # Optional State + ZIP
+            re.IGNORECASE,
+        ),
+        confidence=0.92,
+    ),
+
+    # --- PO Box ---
+    PatternDef(
+        entity_type="ADDRESS",
+        pattern=re.compile(
+            r"\bP\.?\s*O\.?\s*Box\s+\d{1,10}\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.95,
+        entity_subtype="PO_BOX",
+    ),
+
+    # --- City, State ZIP (standalone, e.g. "Springfield, IL 62701") ---
+    PatternDef(
+        entity_type="ADDRESS",
+        pattern=re.compile(
+            r"\b[A-Z][a-z]{2,20}(?:\s+[A-Z][a-z]{2,20})?"               # City (1-2 words)
+            r",\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?\b",                        # State + ZIP
+        ),
+        confidence=0.80,
+        entity_subtype="CITY_STATE_ZIP",
+    ),
+
+    # =====================================================================
+    # Person Names (context-based — NER handles free-form names)
+    # =====================================================================
+
+    # --- Honorific + Name: "Mr. John Smith", "Dr. Jane Doe" ---
+    PatternDef(
+        entity_type="PERSON",
+        pattern=re.compile(
+            r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof|Professor|Rev|Reverend|Hon|Judge|"
+            r"Sgt|Cpl|Lt|Capt|Maj|Col|Gen)"
+            r"\.?[ \t]+"
+            r"[A-Z][a-z]{1,20}"                                          # First name
+            r"(?:[ \t]+[A-Z]\.)?"                                         # Optional middle initial (period required)
+            r"(?:[ \t]+[A-Z][a-z]{1,20})?",                               # Optional last name
+        ),
+        confidence=0.85,
+        entity_subtype="HONORIFIC",
+    ),
+
+    # --- Label + Name: "Name: John Smith", "Patient: Jane Doe" ---
+    PatternDef(
+        entity_type="PERSON",
+        pattern=re.compile(
+            r"(?:(?:full[ \t]+)?name|patient|client|employee|applicant|borrower|"
+            r"insured|defendant|plaintiff|beneficiary|contact|attn|attention|"
+            r"recipient|resident|tenant|owner|guarantor|claimant|witness|"
+            r"subscriber|member|policyholder|cardholder|account[ \t]*holder)"
+            r"[ \t]*[:=][ \t]*"
+            r"[A-Z][a-z]{1,20}"                                          # First name
+            r"(?:[ \t]+[A-Z]\.)?"                                         # Optional middle initial (period required)
+            r"(?:[ \t]+[A-Z][a-z]{1,20}){1,2}",                           # Last name (1-2 parts)
+            re.IGNORECASE,
+        ),
+        confidence=0.85,
+        entity_subtype="LABEL",
+    ),
+
+    # --- "Dear [Name]" salutation ---
+    PatternDef(
+        entity_type="PERSON",
+        pattern=re.compile(
+            r"\bDear[ \t]+"
+            r"(?:(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?[ \t]+)?"                  # Optional honorific
+            r"[A-Z][a-z]{1,20}"                                          # First/last name
+            r"(?:[ \t]+[A-Z][a-z]{1,20})?",                               # Optional second name
+        ),
+        confidence=0.80,
+        entity_subtype="SALUTATION",
     ),
 ]
 

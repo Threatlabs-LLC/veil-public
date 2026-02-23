@@ -137,6 +137,35 @@ class TestRegexDetectorSSN:
         ssns = [r for r in results if r.entity_type == "SSN"]
         assert len(ssns) == 0
 
+    def test_ssn_with_spaces(self):
+        results = self.detector.detect("SSN: 123 45 6789")
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) >= 1
+
+    def test_ssn_bare_digits_no_match(self):
+        """Bare 9-digit sequences without context should NOT match as SSN."""
+        results = self.detector.detect("Reference number 123456789 in the file")
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) == 0
+
+    def test_ssn_bare_digits_with_context(self):
+        """Bare 9-digit SSN preceded by 'SSN:' keyword should match."""
+        results = self.detector.detect("SSN: 123456789")
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) >= 1
+
+    def test_ssn_social_security_context(self):
+        """'Social Security Number' context should trigger bare digit detection."""
+        results = self.detector.detect("Social Security Number: 123456789")
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) >= 1
+
+    def test_ssn_not_in_address(self):
+        """Digits in a street address should NOT be detected as SSN."""
+        results = self.detector.detect("5678 Oak Lane, Springfield, IL 62701")
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) == 0
+
 
 class TestRegexDetectorPhones:
     def setup_method(self):
@@ -347,6 +376,196 @@ class TestIPValidator:
 
     def test_wrong_segment_count(self):
         assert _is_valid_ip("192.168.1") is False
+
+
+# ── Address Detection ─────────────────────────────────────────────────
+
+
+class TestRegexDetectorAddresses:
+    def setup_method(self):
+        self.detector = RegexDetector()
+
+    def test_simple_street_address(self):
+        results = self.detector.detect("I live at 123 Main Street")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "123 Main Street" in addrs[0].value
+
+    def test_address_with_suffix_abbreviation(self):
+        results = self.detector.detect("Office at 456 Oak Ave")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+
+    def test_address_with_directional(self):
+        results = self.detector.detect("Located at 789 N. Broadway Blvd")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "789" in addrs[0].value
+
+    def test_address_with_unit(self):
+        results = self.detector.detect("Ship to 100 Park Ave, Suite 200")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "Suite 200" in addrs[0].value
+
+    def test_full_address_with_city_state_zip(self):
+        results = self.detector.detect("5678 Oak Lane, Springfield, IL 62701")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) >= 1
+        # Should capture the full address including city/state/zip
+        full = max(addrs, key=lambda a: len(a.value))
+        assert "5678" in full.value
+        assert "62701" in full.value
+
+    def test_ordinal_street_name(self):
+        results = self.detector.detect("Located at 789 E. 42nd Street")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "42nd" in addrs[0].value
+
+    def test_po_box(self):
+        results = self.detector.detect("Mail to P.O. Box 12345")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "12345" in addrs[0].value
+
+    def test_po_box_no_periods(self):
+        results = self.detector.detect("PO Box 999")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+
+    def test_city_state_zip(self):
+        results = self.detector.detect("Springfield, IL 62701")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+        assert "Springfield" in addrs[0].value
+
+    def test_city_state_zip_with_plus4(self):
+        results = self.detector.detect("Austin, TX 78701-1234")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 1
+
+    def test_address_prevents_ssn_misclass(self):
+        """Address detection should claim the span and prevent SSN false positives."""
+        text = "5678 Oak Lane, Springfield, IL 62701"
+        results = self.detector.detect(text)
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(ssns) == 0
+
+    def test_multiple_addresses(self):
+        text = "From 123 Main St to 456 Oak Ave"
+        results = self.detector.detect(text)
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 2
+
+    def test_no_false_positive_plain_text(self):
+        """Normal text should not trigger address detection."""
+        results = self.detector.detect("The company grew 500 percent last quarter")
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        assert len(addrs) == 0
+
+    def test_common_street_suffixes(self):
+        """Test various street suffix types are recognized."""
+        for suffix in ["St", "Ave", "Blvd", "Dr", "Rd", "Ln", "Way", "Ct", "Pl",
+                        "Cir", "Trl", "Ter", "Pkwy", "Hwy"]:
+            text = f"100 Test {suffix}"
+            results = self.detector.detect(text)
+            addrs = [r for r in results if r.entity_type == "ADDRESS"]
+            assert len(addrs) >= 1, f"Failed to detect address with suffix '{suffix}'"
+
+
+# ── Person Name Detection ─────────────────────────────────────────────
+
+
+class TestRegexDetectorPersonNames:
+    """Context-based person name detection (regex, not NER)."""
+
+    def setup_method(self):
+        self.detector = RegexDetector()
+
+    def test_mr_first_last(self):
+        results = self.detector.detect("Contact Mr. John Smith for details")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Mr. John Smith" in persons[0].value
+
+    def test_dr_full_name(self):
+        results = self.detector.detect("Dr. Jane Doe is the specialist")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Dr. Jane Doe" in persons[0].value
+
+    def test_middle_initial(self):
+        results = self.detector.detect("Dr. Robert A. Johnson is attending")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Robert A. Johnson" in persons[0].value
+
+    def test_patient_label(self):
+        results = self.detector.detect("Patient: Jane Doe")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Jane Doe" in persons[0].value
+
+    def test_name_label(self):
+        results = self.detector.detect("Name: Alice Johnson")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Alice Johnson" in persons[0].value
+
+    def test_name_label_lowercase(self):
+        """Label keywords should match case-insensitively."""
+        results = self.detector.detect("name: Alice Johnson")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+
+    def test_client_label(self):
+        results = self.detector.detect("Client: Bob Williams")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+
+    def test_employee_label(self):
+        results = self.detector.detect("Employee: Carol Davis")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+
+    def test_dear_salutation(self):
+        results = self.detector.detect("Dear John,")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 1
+        assert "Dear John" in persons[0].value
+
+    def test_dear_with_honorific(self):
+        results = self.detector.detect("Dear Mr. Johnson,")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) >= 1
+
+    def test_no_false_positive_plain_text(self):
+        """Normal text without name context should not trigger."""
+        results = self.detector.detect("The server processed 500 requests today")
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) == 0
+
+    def test_no_newline_crossing(self):
+        """Name patterns should not match across newlines."""
+        text = "Patient: John Doe\nAddress: 123 Main St"
+        results = self.detector.detect(text)
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        assert len(persons) >= 1
+        # The person match should NOT include "Address"
+        for p in persons:
+            assert "Address" not in p.value
+
+    def test_mixed_pii_names_and_addresses(self):
+        """Names and addresses detected separately in mixed PII text."""
+        text = "Patient: John Doe\nAddress: 5678 Oak Lane\nSSN: 287-65-4321"
+        results = self.detector.detect(text)
+        persons = [r for r in results if r.entity_type == "PERSON"]
+        addrs = [r for r in results if r.entity_type == "ADDRESS"]
+        ssns = [r for r in results if r.entity_type == "SSN"]
+        assert len(persons) >= 1
+        assert len(addrs) >= 1
+        assert len(ssns) >= 1
 
 
 # ── Custom Rule Detector ───────────────────────────────────────────────
