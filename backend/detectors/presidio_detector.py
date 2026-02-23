@@ -3,7 +3,7 @@
 Wraps Microsoft Presidio's AnalyzerEngine with spaCy NER backend.
 Gracefully degrades if presidio or spaCy are not installed.
 
-Install with: pip install veilproxy[ner]
+Install with: pip install veilchat[ner]
 Then download the spaCy model: python -m spacy download en_core_web_md
 """
 
@@ -133,7 +133,7 @@ def _try_load_presidio() -> AnalyzerEngine | None:
         return engine
 
     except ImportError:
-        logger.info("Presidio not installed — NER detector disabled. Install with: pip install veilproxy[ner]")
+        logger.info("Presidio not installed — NER detector disabled. Install with: pip install veilchat[ner]")
         return None
     except OSError:
         # spaCy model not downloaded
@@ -225,12 +225,56 @@ class PresidioDetector(BaseDetector):
 
             # ── PERSON filters ──
             if entity_type == "PERSON":
+                # spaCy sometimes merges adjacent names across newlines into
+                # a single span (e.g. "John Doe\nJane Smith\n").  Split on
+                # newlines and emit each valid name as its own entity.
+                if "\n" in value:
+                    offset = result.start
+                    for line in value.split("\n"):
+                        line_stripped = line.strip()
+                        line_start = offset + value[offset - result.start:].index(line) if line else offset
+                        # Recompute start position correctly
+                        line_start = result.start + value.index(line, offset - result.start)
+                        line_end = line_start + len(line_stripped)
+                        offset = line_start + len(line)
+                        if not line_stripped:
+                            continue
+                        if len(line_stripped) < 3:
+                            continue
+                        # Must look like a name: starts with uppercase,
+                        # mostly alpha, 2-4 words (require 2+ to filter
+                        # out section headers like "Addresses")
+                        words = line_stripped.split()
+                        if not (2 <= len(words) <= 4):
+                            continue
+                        if not all(w[0].isupper() and w.replace("'", "").replace("-", "").isalpha() for w in words):
+                            continue
+                        val_lower = line_stripped.lower()
+                        if val_lower in _PERSON_BLOCKLIST:
+                            continue
+                        if any(val_lower.endswith(s) for s in _COMPANY_SUFFIXES):
+                            ent_type = "ORGANIZATION"
+                        else:
+                            ent_type = "PERSON"
+                        entities.append(DetectedEntity(
+                            entity_type=ent_type,
+                            value=line_stripped,
+                            start=line_start,
+                            end=line_end,
+                            confidence=result.score,
+                            detection_method="ner_model",
+                            entity_subtype=result.entity_type,
+                            metadata={"recognizer": result.recognition_metadata.get("recognizer_name", "unknown")
+                                      if result.recognition_metadata else {}},
+                        ))
+                    continue
+
                 val_lower = value.strip().lower()
                 # Blocklist: common tech terms misidentified as names
                 if val_lower in _PERSON_BLOCKLIST:
                     continue
-                # Contains comma or newline — likely malformed span
-                if "," in value or "\n" in value:
+                # Contains comma — likely malformed span
+                if "," in value:
                     continue
                 # Looks like an ID/code — mostly digits, hyphens
                 stripped = value.strip()

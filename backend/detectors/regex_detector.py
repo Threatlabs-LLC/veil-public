@@ -51,7 +51,7 @@ def _is_likely_phone(match_str: str) -> bool:
     """Filter out false positive phone matches (hex strings, SID fragments, IDs, etc.)."""
     digits_only = re.sub(r"[^\d]", "", match_str)
     # All same digit = likely not a phone (0000000000, 1111111111)
-    if len(set(digits_only)) <= 2:
+    if len(set(digits_only)) <= 1:
         return False
     # Sequential digits = likely not a phone (1234567890)
     if digits_only in "01234567890123456789":
