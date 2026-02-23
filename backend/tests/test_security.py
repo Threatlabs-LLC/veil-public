@@ -289,24 +289,22 @@ class TestRateLimiting:
     """Test rate limiting behavior."""
 
     @pytest.mark.asyncio
-    async def test_auth_rate_limit_headers(self):
+    async def test_auth_rate_limit_headers(self, client):
         """Auth endpoints should have rate limit headers."""
         from backend.main import app
         from backend.middleware.rate_limit import RateLimitMiddleware
 
-        # Re-enable rate limiting for this test
+        # Re-enable rate limiting for this test (client fixture disables it)
         for mw in app.user_middleware:
             if mw.cls is RateLimitMiddleware:
                 mw.kwargs["enabled"] = True
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            resp = await ac.post(
-                "/api/auth/login",
-                json={"email": "test@test.com", "password": "wrong"},
-            )
-            # Should have rate limit headers
-            assert "x-ratelimit-limit" in resp.headers or resp.status_code == 401
+        resp = await client.post(
+            "/api/auth/login",
+            json={"email": "test@test.com", "password": "wrong"},
+        )
+        # Should have rate limit headers
+        assert "x-ratelimit-limit" in resp.headers or resp.status_code == 401
 
         # Restore disabled state
         for mw in app.user_middleware:
