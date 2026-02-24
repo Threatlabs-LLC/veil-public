@@ -1,0 +1,9 @@
+employee_id,full_name,email,phone,ssn,department,salary,address,emergency_contact,emergency_phone
+EMP-001,Jennifer Martinez,j.martinez@globaltech.com,(415) 555-1234,234-56-7890,Engineering,$145000,"1847 Market Street, Apt 4B, San Francisco CA 94103",Carlos Martinez,(415) 555-9876
+EMP-002,David Okonkwo,d.okonkwo@globaltech.com,(415) 555-2345,345-67-8901,Sales,$125000,"2930 Broadway, Oakland CA 94611",Maria Okonkwo,(510) 555-4321
+EMP-003,Priya Patel,p.patel@globaltech.com,(650) 555-3456,456-78-9012,Product,$165000,"456 University Avenue, Palo Alto CA 94301",Raj Patel,(408) 555-5678
+EMP-004,Thomas Andersen,t.andersen@globaltech.com,(408) 555-4567,567-89-0123,Legal,$155000,"789 The Alameda, San Jose CA 95126",Anna Andersen,(408) 555-8765
+EMP-005,Aisha Rahman,a.rahman@globaltech.com,(925) 555-5678,678-90-1234,Finance,$135000,"1200 Treat Blvd, Walnut Creek CA 94597",Omar Rahman,(925) 555-2109
+EMP-006,Christopher Lee,c.lee@globaltech.com,(415) 555-6789,789-01-2345,HR,$120000,"3344 Geary Blvd, San Francisco CA 94118",Susan Lee,(415) 555-3210
+EMP-007,Elena Volkov,e.volkov@globaltech.com,(510) 555-7890,890-12-3456,Engineering,$155000,"567 Grand Avenue, Oakland CA 94610",Dimitri Volkov,(510) 555-6543
+EMP-008,Marcus Johnson,m.johnson@globaltech.com,(650) 555-8901,901-23-4567,Marketing,$110000,"890 El Camino Real, Menlo Park CA 94025",Diane Johnson,(650) 555-7654

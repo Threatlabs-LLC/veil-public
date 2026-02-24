@@ -1,0 +1,48 @@
+MASTER SERVICES AGREEMENT
+
+This Agreement is entered into as of February 1, 2026, by and between:
+
+PROVIDER: Threatlabs LLC, a Delaware limited liability company
+Address: 1234 Innovation Drive, Suite 500, Austin, TX 78701
+EIN: 84-3298471
+Contact: Cory Brown, CEO, cory.brown@threatlabs.tech, (512) 555-3847
+
+CLIENT: Meridian Healthcare Systems Inc., a California corporation
+Address: 8900 Wilshire Boulevard, Floor 12, Beverly Hills, CA 90211
+EIN: 95-4872103
+Contact: Patricia Dominguez, General Counsel, p.dominguez@meridianhcs.com, (310) 555-2190
+
+WHEREAS, Provider offers enterprise software solutions for data protection and privacy compliance;
+
+ARTICLE 3 — PAYMENT TERMS
+3.1 Client shall pay Provider $45,000/month for the Enterprise tier license.
+3.2 Payment via wire to:
+    Bank: Silicon Valley Bank
+    Routing: 121140399
+    Account: 3300194827
+    Reference: MSA-2026-MHCS
+
+3.3 Late payment contact: accounts@threatlabs.tech
+
+ARTICLE 5 — DATA PROTECTION
+5.1 Provider shall not access, store, or process any Protected Health Information (PHI) as defined under HIPAA.
+5.2 Client's designated Data Protection Officer: Dr. James Whitfield, j.whitfield@meridianhcs.com
+5.3 Security incidents shall be reported to security@meridianhcs.com within 24 hours.
+
+ARTICLE 8 — AUTHORIZED REPRESENTATIVES
+For Provider:
+  Name: Cory Brown
+  Title: CEO
+  Email: cory.brown@threatlabs.tech
+  SSN (for IRS W-9): 478-92-1034
+
+For Client:
+  Name: Patricia Dominguez
+  Title: General Counsel
+  Email: p.dominguez@meridianhcs.com
+  Driver's License: CA D4829103 (for notarization)
+
+EXECUTED as of the date first written above.
+
+Notary: Jennifer Walsh, Commission #2234876, Los Angeles County
+Witness: Thomas Adeyemi, tadeyemi@legalteam.com, phone: (213) 555-7823

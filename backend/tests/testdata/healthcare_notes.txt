@@ -1,0 +1,30 @@
+Patient: Margaret Thompson, DOB: 03/15/1978
+MRN: 4821903
+SSN: 287-65-4321
+Insurance ID: BCBS-9928374651
+
+Chief Complaint: Patient presents with recurring migraines, worsening over the past 3 weeks.
+
+History of Present Illness:
+Margaret Thompson is a 47-year-old female referred by Dr. Robert Chen (NPI: 1234567890) at Northwest Medical Associates. She reports severe headaches occurring 3-4 times per week since January 2026. Prior treatment by Dr. Sarah Williams at Cascade Neurology (phone: (206) 555-8743) was ineffective. Patient was previously seen at Virginia Mason Medical Center.
+
+Medications:
+- Sumatriptan 100mg PRN (prescribed by Dr. Chen)
+- Lisinopril 10mg daily
+
+Allergies: Penicillin, Sulfa drugs
+
+Emergency Contact: David Thompson (husband), phone: 425-555-9012, email: david.thompson@outlook.com
+
+Lab Results (ordered by Dr. Chen on 02/10/2026):
+- CBC: WNL
+- TSH: 2.4 mIU/L
+- MRI scheduled at Swedish Medical Center, account #SMC-2026-44821
+
+Billing:
+Credit card on file: 4532 0151 1283 0366
+Billing address: 14203 NE 45th Street, Bellevue, WA 98007
+
+Notes by Dr. Amanda Foster (amfoster@nwmedical.org):
+Patient reports stress at work (Microsoft, Redmond campus). Recommend follow-up in 2 weeks.
+Access patient portal at https://portal.nwmedical.org/patient/margaret.thompson

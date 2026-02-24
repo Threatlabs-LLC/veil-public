@@ -1,0 +1,43 @@
+Support Ticket #TK-2026-8834
+Priority: High
+Created: 2026-02-19 14:32 UTC
+Assignee: Alex Nakamura (alex.nakamura@supportteam.io)
+
+Customer Information:
+  Name: Rachel Green
+  Company: Westfield Digital Agency
+  Email: rachel.green@westfieldagency.com
+  Phone: +1 (312) 555-4829
+  Account ID: CUST-WDA-4829
+
+Environment:
+  Server: prod-api-03.westfieldagency.com (IP: 52.14.182.93)
+  OS: Ubuntu 22.04 LTS
+  Database: MongoDB at mongodb://appuser:Tr0ub4dor&3@db-cluster.westfieldagency.com:27017/production
+  Redis: redis://:s3cr3tP@ss@cache-01.internal:6379/0
+  AWS Account ID: 123456789012
+  AWS Access Key: AKIAIOSFODNN7EXAMPLE
+  Region: us-east-1
+
+Issue Description:
+Application crashes when processing uploads larger than 50MB. Error in logs:
+
+  2026-02-19T14:28:03Z ERROR [pid=28431] handler=upload user=rachel.green@westfieldagency.com
+  java.lang.OutOfMemoryError: Java heap space
+    at com.westfield.upload.FileProcessor.process(FileProcessor.java:142)
+    stacktrace truncated...
+
+  Server metrics at time of crash:
+  - Host: prod-api-03 (MAC: 00:1A:2B:3C:4D:5E)
+  - Memory: 14.2GB / 16GB
+  - Connected clients: rachel.green, m.torres, admin@westfieldagency.com
+
+Previous tickets from this customer:
+  TK-2026-7291 (resolved by Sarah Park, spark@supportteam.io)
+  TK-2025-4110 (resolved by David Kim, dkim@supportteam.io, phone: (415) 555-7723)
+
+Internal Notes:
+  - Customer API key: wda_prod_4829ae1f3c7b8d2e (rotate after fix)
+  - SSH access: ssh deployer@52.14.182.93 -i /home/alex/.ssh/westfield_prod.pem
+  - Slack channel for escalation: #customer-westfield
+  - Customer's billing contact: accounting@westfieldagency.com, CC: 5425 2334 3010 9903

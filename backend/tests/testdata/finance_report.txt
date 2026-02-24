@@ -1,0 +1,42 @@
+CONFIDENTIAL — Q4 2025 Financial Review
+Prepared by: James Richardson, CFO
+Email: j.richardson@acmecorp.com
+Date: February 15, 2026
+
+Executive Summary:
+Revenue for Q4 reached $4.2M, a 15% increase YoY. Key accounts include Microsoft (contact: Lisa Park, lisa.park@microsoft.com) and Amazon Web Services (contact: Kevin Nguyen, knguyen@amazon.com, phone: (206) 266-1000).
+
+Wire Transfer Details:
+- Routing: 021000021 (Chase)
+- Account: 483729105638
+- SWIFT/BIC: CHASUS33
+- IBAN: DE89370400440532013000
+
+Employee Compensation (Confidential):
+- James Richardson: $285,000 base + $120,000 bonus, SSN: 412-78-9034
+- Sarah Kim (VP Sales): $195,000 base, SSN: 531-22-8876, sarah.kim@acmecorp.com
+- Michael O'Brien (VP Eng): $210,000 base, michael.obrien@acmecorp.com, badge ID: EMP-4429
+
+Accounts Receivable:
+Invoice #INV-2025-4471 — Microsoft Corp, PO Box 8436, Redmond WA 98052
+  Amount: $847,230.00
+  Contact: Lisa Park, +1 (425) 882-8080
+  Tax ID (EIN): 91-1144442
+
+Invoice #INV-2025-4523 — Apex Solutions LLC
+  Amount: $234,100.00
+  Contact: Robert Fernandez, robert.f@apexsolutions.io
+  Mailing: 2200 Pennsylvania Ave NW, Suite 400, Washington DC 20037
+
+Credit Facilities:
+Corporate Amex: 3782 822463 10005
+Corporate Visa: 4916 3388 1100 7722
+Authorized users: James Richardson, Sarah Kim
+
+Server Access (Finance Systems):
+Jump host: 10.42.8.100
+Database: postgresql://findb_admin:Kx9$mPq2vL@db-finance-prod.internal:5432/ledger
+API key for payment gateway: sk_live_4eC39HqLyjWDarjtT1zdp7dc
+
+Notes: Q1 2026 board meeting scheduled with investors at 500 5th Avenue, New York NY 10110.
+Contact Amanda Chen (Board Chair) at achen@venturegroup.com or (212) 555-0147.
