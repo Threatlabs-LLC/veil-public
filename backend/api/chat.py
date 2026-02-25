@@ -52,6 +52,11 @@ class ChatRequest(BaseModel):
 
 
 
+def _resolve_model(model: str) -> str:
+    """Strip the -image suffix used to route to the Responses API."""
+    return model.removesuffix("-image")
+
+
 async def _get_provider(provider_name: str, org_id: str, db, model: str = ""):
     """Get the appropriate LLM provider, resolving keys from org settings or env."""
     from backend.core.provider_keys import get_provider_key
@@ -68,6 +73,9 @@ async def _get_provider(provider_name: str, org_id: str, db, model: str = ""):
     else:
         if not api_key:
             raise HTTPException(400, "OpenAI API key not configured. Set it in Settings.")
+        if model.endswith("-image"):
+            from backend.providers.openai_responses import OpenAIResponsesProvider
+            return OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
         return OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
 
@@ -404,7 +412,7 @@ async def chat(
         try:
             async for chunk in provider.chat_stream(
                 messages=llm_messages,
-                model=req_model,
+                model=_resolve_model(req_model),
                 temperature=req_temperature,
                 max_tokens=req_max_tokens,
             ):
@@ -816,7 +824,7 @@ async def chat_with_document(
         try:
             async for chunk in llm_provider.chat_stream(
                 messages=llm_messages,
-                model=model,
+                model=_resolve_model(model),
                 temperature=temperature,
                 max_tokens=max_tokens,
             ):

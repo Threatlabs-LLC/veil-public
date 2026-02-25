@@ -192,7 +192,11 @@ async def gateway_chat_completions(
     else:
         if not api_key:
             raise HTTPException(400, {"error": {"message": "OpenAI API key not configured. Set it in Settings."}})
-        provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
+        if model.endswith("-image"):
+            from backend.providers.openai_responses import OpenAIResponsesProvider
+            provider = OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
+        else:
+            provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
     llm_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in sanitized_messages]
 
@@ -263,7 +267,7 @@ async def _stream_response(provider, messages, model, temperature, max_tokens,
 
         try:
             async for chunk in provider.chat_stream(
-                messages=messages, model=model,
+                messages=messages, model=_resolve_model(model),
                 temperature=temperature, max_tokens=max_tokens,
             ):
                 # Non-text content (images) passes through untouched — no PII to sanitize
@@ -350,7 +354,7 @@ async def _blocking_response(provider, messages, model, temperature, max_tokens,
 
     try:
         async for chunk in provider.chat_stream(
-            messages=messages, model=model,
+            messages=messages, model=_resolve_model(model),
             temperature=temperature, max_tokens=max_tokens,
         ):
             # Non-text content passes through as markdown
@@ -434,10 +438,16 @@ def _format_sse_chunk(response_id: str, model: str, content: str,
     }
 
 
+def _resolve_model(model: str) -> str:
+    """Strip the -image suffix used to route to the Responses API."""
+    return model.removesuffix("-image")
+
+
 def _infer_provider(model: str) -> str:
     """Infer the provider from model name."""
-    if model.startswith("claude"):
+    base = _resolve_model(model)
+    if base.startswith("claude"):
         return "anthropic"
-    if model.startswith(("llama", "mistral", "codellama", "mixtral")):
+    if base.startswith(("llama", "mistral", "codellama", "mixtral")):
         return "ollama"
     return "openai"

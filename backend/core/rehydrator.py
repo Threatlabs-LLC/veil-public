@@ -3,9 +3,12 @@
 Handles both complete responses and streaming token buffers.
 """
 
+import logging
 import re
 
 from backend.core.mapper import EntityMapper
+
+logger = logging.getLogger(__name__)
 
 # Pattern that matches our placeholder format: TYPE_NNN
 PLACEHOLDER_PATTERN = re.compile(
@@ -24,7 +27,11 @@ class Rehydrator:
         def _replace(match: re.Match) -> str:
             placeholder = match.group(0)
             original = self._mapper.lookup_placeholder(placeholder)
-            return original if original is not None else placeholder
+            if original is not None:
+                return original
+            # Unknown placeholder — return [REDACTED] instead of leaking the placeholder
+            logger.debug("Unknown placeholder in rehydration: %s", placeholder)
+            return "[REDACTED]"
 
         return PLACEHOLDER_PATTERN.sub(_replace, text)
 

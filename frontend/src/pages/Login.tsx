@@ -15,6 +15,13 @@ export default function Login() {
   // Handle OAuth callback token (delivered via URL fragment, never sent to server/logs)
   useEffect(() => {
     const hash = window.location.hash
+    // Handle OAuth errors
+    if (hash.includes('oauth_error=email_exists')) {
+      window.history.replaceState(null, '', window.location.pathname)
+      setError('An account with this email already exists. Please sign in with your password.')
+      return
+    }
+
     const match = hash.match(/oauth_token=([^&]+)/)
     const oauthToken = match ? match[1] : null
     if (oauthToken) {

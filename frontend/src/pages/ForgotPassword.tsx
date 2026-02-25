@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 
@@ -7,6 +7,14 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [available, setAvailable] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/auth/capabilities')
+      .then(res => res.json())
+      .then(data => { if (!data.password_reset) setAvailable(false) })
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,7 +38,18 @@ export default function ForgotPassword() {
           Enter your email and we'll send you a reset link.
         </p>
 
-        {sent ? (
+        {!available ? (
+          <div className="text-center">
+            <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
+              <p className="text-yellow-300 text-sm">
+                Password reset is unavailable. Contact your administrator.
+              </p>
+            </div>
+            <Link to="/login" className="text-veil-400 hover:text-veil-300 text-sm">
+              Back to Sign In
+            </Link>
+          </div>
+        ) : sent ? (
           <div className="text-center">
             <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-6">
               <p className="text-green-300 text-sm">

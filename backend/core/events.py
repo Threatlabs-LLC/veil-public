@@ -45,6 +45,17 @@ class VeilChatEvent:
             "severity": self.severity,
         }
 
+    @staticmethod
+    def _truncate_json(text: str, max_len: int = 1000) -> str:
+        """Truncate at last newline before max_len to avoid cutting mid-JSON."""
+        if len(text) <= max_len:
+            return text
+        truncated = text[:max_len]
+        last_nl = truncated.rfind("\n")
+        if last_nl > 0:
+            return truncated[:last_nl] + "\n..."
+        return truncated + "..."
+
     def to_slack_block(self) -> dict:
         """Format as a Slack Block Kit message."""
         severity_emoji = {"info": "shield", "warning": "warning", "critical": "rotating_light"}
@@ -69,7 +80,7 @@ class VeilChatEvent:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"```{json.dumps(self.data, indent=2)[:1000]}```",
+                        "text": f"```{self._truncate_json(json.dumps(self.data, indent=2))}```",
                     },
                 },
             ],
@@ -161,7 +172,7 @@ class EventBus:
                 logger.error(f"Webhook delivery error ({webhook.url}): {e}")
 
     async def _send_webhook(self, webhook: WebhookConfig, event: VeilChatEvent) -> None:
-        """Send event to a single webhook endpoint."""
+        """Send event to a single webhook endpoint with retry on 5xx/connection errors."""
         if webhook.format == "slack":
             payload = event.to_slack_block()
         else:
@@ -179,14 +190,51 @@ class EventBus:
             ).hexdigest()
             headers["X-VeilChat-Signature"] = f"sha256={signature}"
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                webhook.url, content=body_bytes, headers=headers
-            )
-            if response.status_code >= 400:
-                logger.warning(
-                    f"Webhook {webhook.url} returned {response.status_code}: {response.text[:200]}"
-                )
+        max_attempts = 3
+        backoff_seconds = [1, 2, 4]
+
+        for attempt in range(max_attempts):
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.post(
+                        webhook.url, content=body_bytes, headers=headers
+                    )
+                    if response.status_code < 400:
+                        return  # Success
+                    if response.status_code < 500:
+                        # 4xx — client error, do not retry
+                        logger.warning(
+                            "Webhook %s returned %d: %s",
+                            webhook.url, response.status_code, response.text[:200],
+                        )
+                        return
+                    # 5xx — server error, retry
+                    if attempt < max_attempts - 1:
+                        logger.warning(
+                            "Webhook %s returned %d, retrying in %ds (attempt %d/%d)",
+                            webhook.url, response.status_code,
+                            backoff_seconds[attempt], attempt + 1, max_attempts,
+                        )
+                        await asyncio.sleep(backoff_seconds[attempt])
+                    else:
+                        logger.error(
+                            "Webhook %s failed after %d attempts. Last status: %d. Event: %s",
+                            webhook.url, max_attempts, response.status_code,
+                            event.event_type.value,
+                        )
+            except (httpx.ConnectError, httpx.TimeoutException, OSError) as exc:
+                if attempt < max_attempts - 1:
+                    logger.warning(
+                        "Webhook %s connection error: %s, retrying in %ds (attempt %d/%d)",
+                        webhook.url, exc, backoff_seconds[attempt],
+                        attempt + 1, max_attempts,
+                    )
+                    await asyncio.sleep(backoff_seconds[attempt])
+                else:
+                    logger.error(
+                        "Webhook %s failed after %d attempts. Error: %s. Event: %s",
+                        webhook.url, max_attempts, exc, event.event_type.value,
+                    )
 
 
 # Global event bus instance

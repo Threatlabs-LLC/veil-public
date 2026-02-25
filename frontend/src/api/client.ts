@@ -613,6 +613,7 @@ export const api = {
   }): {
     eventSource: AbortController
     onSanitization: (cb: (data: SanitizationEvent) => void) => void
+    onDocument: (cb: (data: Record<string, unknown>) => void) => void
     onToken: (cb: (content: string) => void) => void
     onImage: (cb: (data: ImageEvent) => void) => void
     onDone: (cb: (data: Record<string, unknown>) => void) => void
@@ -621,6 +622,7 @@ export const api = {
   } {
     const controller = new AbortController()
     let sanitizationCb: ((data: SanitizationEvent) => void) | null = null
+    let documentCb: ((data: Record<string, unknown>) => void) | null = null
     let tokenCb: ((content: string) => void) | null = null
     let imageCb: ((data: ImageEvent) => void) | null = null
     let doneCb: ((data: Record<string, unknown>) => void) | null = null
@@ -629,6 +631,7 @@ export const api = {
     return {
       eventSource: controller,
       onSanitization(cb) { sanitizationCb = cb },
+      onDocument(cb) { documentCb = cb },
       onToken(cb) { tokenCb = cb },
       onImage(cb) { imageCb = cb },
       onDone(cb) { doneCb = cb },
@@ -683,6 +686,9 @@ export const api = {
                   switch (currentEvent) {
                     case 'sanitization':
                       sanitizationCb?.(parsed)
+                      break
+                    case 'document':
+                      documentCb?.(parsed)
                       break
                     case 'token':
                       tokenCb?.(parsed.content)

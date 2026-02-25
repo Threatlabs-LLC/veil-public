@@ -232,7 +232,7 @@ npm run dev
 python -m pytest backend/tests/ -v
 ```
 
-792 tests across 13 test files. Covers detection accuracy, security hardening, performance benchmarks, API route coverage, core pipeline logic, policy engine, PII corpus testing across 12 real-world log formats, and multimodal streaming.
+792 tests across 20 test files. Covers detection accuracy, security hardening, performance benchmarks, API route coverage, core pipeline logic, policy engine, PII corpus testing across 12 real-world log formats, and multimodal streaming.
 
 ---
 

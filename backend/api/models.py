@@ -19,6 +19,8 @@ MODEL_REGISTRY: dict[str, list[dict]] = {
         {"id": "gpt-4o", "name": "GPT-4o", "context_window": 128000, "cost_per_1k_input": 0.0025, "cost_per_1k_output": 0.01},
         {"id": "gpt-4-turbo", "name": "GPT-4 Turbo", "context_window": 128000, "cost_per_1k_input": 0.01, "cost_per_1k_output": 0.03},
         {"id": "o3-mini", "name": "o3-mini", "context_window": 128000, "cost_per_1k_input": 0.0011, "cost_per_1k_output": 0.0044},
+        {"id": "gpt-4o-image", "name": "GPT-4o (Image Generation)", "context_window": 128000, "cost_per_1k_input": 0.0025, "cost_per_1k_output": 0.01},
+        {"id": "gpt-4o-mini-image", "name": "GPT-4o Mini (Image Generation)", "context_window": 128000, "cost_per_1k_input": 0.00015, "cost_per_1k_output": 0.0006},
     ],
     "anthropic": [
         {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "context_window": 200000, "cost_per_1k_input": 0.003, "cost_per_1k_output": 0.015},

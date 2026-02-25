@@ -353,6 +353,11 @@ async def update_profile(
             raise HTTPException(400, "Email already in use")
         user.email = body.email
 
+    await log_audit_event(
+        db, user.organization_id, "user.profile_updated",
+        user_id=user.id, http_status=200,
+    )
+
     return UserOut(
         id=user.id, email=user.email, display_name=user.display_name,
         role=user.role, organization_id=user.organization_id,
@@ -383,6 +388,18 @@ async def change_password(
     )
 
     return {"status": "password_changed"}
+
+
+# --- Auth Capabilities ---
+
+
+@router.get("/auth/capabilities")
+async def auth_capabilities():
+    """Return which auth features are available (no auth required)."""
+    return {
+        "password_reset": bool(settings.smtp_host and settings.smtp_from_email),
+        "google_oauth": bool(settings.google_client_id and settings.google_client_secret),
+    }
 
 
 # --- Password Reset ---
@@ -601,14 +618,16 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
     user = result.scalar_one_or_none()
 
     if not user:
-        # Try matching by email (link existing password account)
+        # Check if email is already used by a password-based account
         result = await db.execute(select(User).where(User.email == email))
-        user = result.scalar_one_or_none()
+        existing_user = result.scalar_one_or_none()
 
-        if user:
-            # Link OAuth to existing account
-            user.oauth_provider = "google"
-            user.oauth_id = google_id
+        if existing_user:
+            # Do NOT auto-link — this would allow account takeover
+            return RedirectResponse(
+                url="/login#oauth_error=email_exists",
+                status_code=302,
+            )
         else:
             # Create new user + org
             org_name = email.split("@")[0]

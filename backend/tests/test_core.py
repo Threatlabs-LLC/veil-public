@@ -219,10 +219,10 @@ class TestRehydrator:
         result = rh.rehydrate("Contact EMAIL_001 at PHONE_001")
         assert result == "Contact john@example.com at (555) 123-4567"
 
-    def test_rehydrate_unknown_placeholder_unchanged(self):
+    def test_rehydrate_unknown_placeholder_redacted(self):
         rh = self._make_rehydrator({"EMAIL_001": "john@example.com"})
         result = rh.rehydrate("Hello UNKNOWN_001")
-        assert result == "Hello UNKNOWN_001"
+        assert result == "Hello [REDACTED]"
 
     def test_rehydrate_no_placeholders(self):
         rh = self._make_rehydrator({})
