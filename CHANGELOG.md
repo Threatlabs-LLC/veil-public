@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0 — Multimodal, Log Detection & State Management
+
+### New Features
+- **Multimodal support**: Image generation via OpenAI Responses API provider
+- **OpenAI Responses API provider**: New provider backend for image generation workflows
+- **State store**: Server-side session state management for improved session handling
+
+### Detection Enhancements
+- **Log file PII detection patterns**: Azure resource IDs, GCP project/resource paths, AWS ARNs, CIDR notation, Kubernetes resource names, Docker container IDs, SSH key fingerprints, vendor API keys (Datadog, Splunk, PagerDuty, etc.), session IDs
+
+### Security
+- **Sanitized provider errors**: LLM provider error messages are now sanitized before being returned to clients, preventing accidental leakage of API keys or internal URLs in error responses
+
+---
+
 ## v0.2.0 — Security, Polish & Hardening
 
 ### Audit & Observability

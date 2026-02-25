@@ -13,9 +13,18 @@ class ChatMessage:
 
 @dataclass
 class StreamChunk:
-    """A single chunk from a streaming LLM response."""
+    """A single chunk from a streaming LLM response.
+
+    content_type values:
+        "text"         — normal text token (default, goes through rehydration)
+        "image_url"    — image returned as a URL (pass through untouched)
+        "image_base64" — image returned as base64 data (pass through untouched)
+    """
 
     content: str = ""
+    content_type: str = "text"  # "text" | "image_url" | "image_base64"
+    image_url: str | None = None
+    image_data: str | None = None  # base64 encoded
     finish_reason: str | None = None
     model: str | None = None
 

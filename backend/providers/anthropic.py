@@ -76,11 +76,46 @@ class AnthropicProvider(BaseLLMProvider):
 
                     event_type = event.get("type", "")
 
-                    if event_type == "content_block_delta":
+                    if event_type == "content_block_start":
+                        # Check for image content blocks
+                        content_block = event.get("content_block", {})
+                        block_type = content_block.get("type", "")
+
+                        if block_type == "image":
+                            source = content_block.get("source", {})
+                            media_type = source.get("media_type", "image/png")
+                            data = source.get("data", "")
+                            if data:
+                                yield StreamChunk(
+                                    content="",
+                                    content_type="image_base64",
+                                    image_data=f"data:{media_type};base64,{data}",
+                                    model=model,
+                                )
+
+                    elif event_type == "content_block_delta":
                         delta = event.get("delta", {})
-                        text = delta.get("text", "")
-                        if text:
-                            yield StreamChunk(content=text, model=model)
+                        delta_type = delta.get("type", "")
+
+                        if delta_type == "text_delta":
+                            text = delta.get("text", "")
+                            if text:
+                                yield StreamChunk(
+                                    content=text,
+                                    content_type="text",
+                                    model=model,
+                                )
+                        elif delta_type == "image_delta":
+                            # Anthropic may stream image data in deltas
+                            data = delta.get("data", "")
+                            if data:
+                                media_type = delta.get("media_type", "image/png")
+                                yield StreamChunk(
+                                    content="",
+                                    content_type="image_base64",
+                                    image_data=f"data:{media_type};base64,{data}",
+                                    model=model,
+                                )
 
                     elif event_type == "message_delta":
                         stop_reason = event.get("delta", {}).get("stop_reason")

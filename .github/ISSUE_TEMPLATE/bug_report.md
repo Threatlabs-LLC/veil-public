@@ -31,7 +31,7 @@ If applicable, add screenshots. **Redact any PII or API keys before posting.**
 
 ## Environment
 
-- **Veil version**: (e.g., 0.1.0)
+- **Veil version**: (e.g., 0.3.0)
 - **Deployment**: Docker / Direct / Kubernetes
 - **OS**: (e.g., Ubuntu 22.04, Windows 11)
 - **Python version**: (e.g., 3.12)

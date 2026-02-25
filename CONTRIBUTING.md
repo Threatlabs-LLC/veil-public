@@ -133,6 +133,25 @@ Veil's detection system is modular. To add a new entity type:
 3. Add a default policy in `backend/db/seed.py`
 4. Update the entity type list in the README
 
+## Testing New Features
+
+### Multimodal (Image Generation)
+
+If you're working on multimodal features (image generation via the OpenAI Responses API provider), ensure:
+
+1. The provider correctly handles image generation requests and returns results through the sanitization pipeline
+2. Any text in image prompts is still subject to PII detection and policy enforcement
+3. Error responses from the provider are sanitized before reaching the client
+
+### Log File Detection Patterns
+
+When adding or modifying log file PII detection patterns (Azure, GCP, AWS ARN, CIDR, Kubernetes, Docker, SSH keys, vendor API keys, session IDs):
+
+1. Add test cases to `backend/tests/test_detection_quality.py` covering both true positives and false positives
+2. Test against realistic log samples (e.g., `kubectl` output, CloudTrail logs, Docker inspect output)
+3. Verify patterns do not conflict with existing detectors via the overlap resolution system
+4. Run the full detection quality suite: `python -m pytest backend/tests/test_detection_quality.py -v`
+
 ## Reporting Issues
 
 - Use the GitHub issue templates (bug report or feature request)

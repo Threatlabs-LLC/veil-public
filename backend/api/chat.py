@@ -36,6 +36,7 @@ from backend.models.rule import DetectionRule
 from backend.models.user import User
 from backend.providers.base import ChatMessage
 from backend.providers.openai_compat import OpenAICompatProvider
+from backend.providers.openai_responses import OpenAIResponsesProvider, is_responses_capable
 from backend.providers.anthropic import AnthropicProvider
 
 router = APIRouter()
@@ -52,8 +53,12 @@ class ChatRequest(BaseModel):
 
 
 
-async def _get_provider(provider_name: str, org_id: str, db):
-    """Get the appropriate LLM provider, resolving keys from org settings or env."""
+async def _get_provider(provider_name: str, org_id: str, db, model: str = ""):
+    """Get the appropriate LLM provider, resolving keys from org settings or env.
+
+    For OpenAI models that support image generation (gpt-4o, etc.), uses the
+    Responses API provider. Other models use the Chat Completions provider.
+    """
     from backend.core.provider_keys import get_provider_key
 
     api_key, base_url = await get_provider_key(provider_name, org_id, db)
@@ -68,6 +73,9 @@ async def _get_provider(provider_name: str, org_id: str, db):
     else:
         if not api_key:
             raise HTTPException(400, "OpenAI API key not configured. Set it in Settings.")
+        # Use Responses API for image-capable models (only with OpenAI's own API)
+        if is_responses_capable(model) and base_url == "https://api.openai.com/v1":
+            return OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
         return OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
 
@@ -373,7 +381,7 @@ async def chat(
             llm_messages.append(ChatMessage(role="assistant", content=msg.sanitized_content))
 
     # Get LLM provider
-    provider = await _get_provider(request.provider, org_id, db)
+    provider = await _get_provider(request.provider, org_id, db, model=request.model)
 
     # Create rehydrator
     rehydrator = Rehydrator(mapper=mapper)
@@ -411,6 +419,16 @@ async def chat(
                 if chunk.model:
                     model_used = chunk.model
 
+                # Non-text content (images) passes through untouched — no PII to sanitize
+                if chunk.content_type in ("image_url", "image_base64"):
+                    yield f"event: image\ndata: {json.dumps({'type': chunk.content_type, 'url': chunk.image_url, 'data': chunk.image_data})}\n\n"
+                    # Also append markdown to full_response for storage
+                    if chunk.content_type == "image_url" and chunk.image_url:
+                        full_response += f"\n![Generated Image]({chunk.image_url})\n"
+                    elif chunk.content_type == "image_base64" and chunk.image_data:
+                        full_response += f"\n![Generated Image]({chunk.image_data})\n"
+                    continue
+
                 if chunk.content:
                     buffer += chunk.content
                     full_response += chunk.content
@@ -428,11 +446,12 @@ async def chat(
                         buffer = ""
 
         except Exception as e:
+            logger.error("Provider streaming error: %s", e, exc_info=True)
             await emit_provider_error(
                 org_id, user_id,
                 req_provider, req_model, str(e),
             )
-            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+            yield f"event: error\ndata: {json.dumps({'error': 'Provider error: the upstream LLM service returned an error. Check server logs for details.'})}\n\n"
             return
 
         latency_ms = int((time.time() - start_time) * 1000)
@@ -771,7 +790,7 @@ async def chat_with_document(
             llm_messages.append(ChatMessage(role="assistant", content=msg.sanitized_content))
 
     # Get LLM provider
-    llm_provider = await _get_provider(provider, org_id, db)
+    llm_provider = await _get_provider(provider, org_id, db, model=model)
 
     # Create rehydrator
     rehydrator = Rehydrator(mapper=mapper)
@@ -812,6 +831,15 @@ async def chat_with_document(
                 if chunk.model:
                     model_used = chunk.model
 
+                # Non-text content (images) passes through untouched — no PII to sanitize
+                if chunk.content_type in ("image_url", "image_base64"):
+                    yield f"event: image\ndata: {json.dumps({'type': chunk.content_type, 'url': chunk.image_url, 'data': chunk.image_data})}\n\n"
+                    if chunk.content_type == "image_url" and chunk.image_url:
+                        full_response += f"\n![Generated Image]({chunk.image_url})\n"
+                    elif chunk.content_type == "image_base64" and chunk.image_data:
+                        full_response += f"\n![Generated Image]({chunk.image_data})\n"
+                    continue
+
                 if chunk.content:
                     buffer += chunk.content
                     full_response += chunk.content
@@ -827,11 +855,12 @@ async def chat_with_document(
                         buffer = ""
 
         except Exception as e:
+            logger.error("Provider streaming error: %s", e, exc_info=True)
             await emit_provider_error(
                 org_id, user_id,
                 provider, model, str(e),
             )
-            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+            yield f"event: error\ndata: {json.dumps({'error': 'Provider error: the upstream LLM service returned an error. Check server logs for details.'})}\n\n"
             return
 
         latency_ms = int((time.time() - start_time) * 1000)

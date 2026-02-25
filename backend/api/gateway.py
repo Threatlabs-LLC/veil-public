@@ -10,10 +10,13 @@ This is the highest-leverage SaaS feature — zero-friction adoption.
 """
 
 import json
+import logging
 import time
 import uuid
 
 from fastapi import APIRouter, Depends, Request, HTTPException
+
+logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -175,6 +178,7 @@ async def gateway_chat_completions(
     from backend.core.provider_keys import get_provider_key
     from backend.providers.base import ChatMessage
     from backend.providers.openai_compat import OpenAICompatProvider
+    from backend.providers.openai_responses import OpenAIResponsesProvider, is_responses_capable
     from backend.providers.anthropic import AnthropicProvider
 
     api_key, base_url = await get_provider_key(provider_name, user.organization_id, db)
@@ -189,7 +193,11 @@ async def gateway_chat_completions(
     else:
         if not api_key:
             raise HTTPException(400, {"error": {"message": "OpenAI API key not configured. Set it in Settings."}})
-        provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
+        # Use Responses API for image-capable models (only with OpenAI's own API)
+        if is_responses_capable(model) and base_url == "https://api.openai.com/v1":
+            provider = OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
+        else:
+            provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
     llm_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in sanitized_messages]
 
@@ -263,6 +271,23 @@ async def _stream_response(provider, messages, model, temperature, max_tokens,
                 messages=messages, model=model,
                 temperature=temperature, max_tokens=max_tokens,
             ):
+                # Non-text content (images) passes through untouched — no PII to sanitize
+                if chunk.content_type in ("image_url", "image_base64"):
+                    image_content = ""
+                    if chunk.content_type == "image_url" and chunk.image_url:
+                        image_content = f"\n![Generated Image]({chunk.image_url})\n"
+                    elif chunk.content_type == "image_base64" and chunk.image_data:
+                        image_content = f"\n![Generated Image]({chunk.image_data})\n"
+
+                    if image_content:
+                        full_response += image_content
+                        sse_chunk = _format_sse_chunk(
+                            response_id, model, image_content, None
+                        )
+                        yield f"data: {json.dumps(sse_chunk)}\n\n"
+                    continue
+
+                # Text content — process through rehydrator as normal
                 if chunk.content:
                     buffer += chunk.content
                     full_response += chunk.content
@@ -290,11 +315,12 @@ async def _stream_response(provider, messages, model, temperature, max_tokens,
 
         except Exception as e:
             tracker.record_error()
+            logger.error("Provider streaming error: %s", e, exc_info=True)
             await emit_provider_error(
                 user.organization_id, user.id,
                 tracker.metrics.provider, model, str(e),
             )
-            error_chunk = {"error": {"message": str(e)}}
+            error_chunk = {"error": {"message": "Provider error: the upstream LLM service returned an error. Check server logs for details."}}
             yield f"data: {json.dumps(error_chunk)}\n\n"
 
         yield "data: [DONE]\n\n"
@@ -332,6 +358,14 @@ async def _blocking_response(provider, messages, model, temperature, max_tokens,
             messages=messages, model=model,
             temperature=temperature, max_tokens=max_tokens,
         ):
+            # Non-text content passes through as markdown
+            if chunk.content_type in ("image_url", "image_base64"):
+                if chunk.content_type == "image_url" and chunk.image_url:
+                    full_response += f"\n![Generated Image]({chunk.image_url})\n"
+                elif chunk.content_type == "image_base64" and chunk.image_data:
+                    full_response += f"\n![Generated Image]({chunk.image_data})\n"
+                continue
+
             if chunk.content:
                 full_response += chunk.content
             if chunk.model:
@@ -339,11 +373,12 @@ async def _blocking_response(provider, messages, model, temperature, max_tokens,
     except Exception as e:
         tracker.record_error()
         tracker.finish()
+        logger.error("Provider error: %s", e, exc_info=True)
         await emit_provider_error(
             user.organization_id, user.id,
             tracker.metrics.provider, model, str(e),
         )
-        raise HTTPException(502, {"error": {"message": f"Provider error: {str(e)}"}})
+        raise HTTPException(502, {"error": {"message": "Provider error: the upstream LLM service returned an error. Check server logs for details."}})
 
     # Rehydrate full response
     rehydrated = rehydrator.rehydrate(full_response)

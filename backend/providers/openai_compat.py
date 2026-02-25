@@ -80,13 +80,17 @@ class OpenAICompatProvider(BaseLLMProvider):
 
                     choice = choices[0]
                     delta = choice.get("delta", {})
-                    content = delta.get("content", "")
                     finish_reason = choice.get("finish_reason")
                     model_name = chunk.get("model", model)
 
+                    # Standard text content from Chat Completions API.
+                    # Note: Image generation uses the Responses API provider
+                    # (openai_responses.py), not this provider.
+                    content = delta.get("content") or ""
                     if content or finish_reason:
                         yield StreamChunk(
-                            content=content or "",
+                            content=content,
+                            content_type="text",
                             finish_reason=finish_reason,
                             model=model_name,
                         )

@@ -744,6 +744,178 @@ PATTERNS: list[PatternDef] = [
         confidence=0.80,
         entity_subtype="SALUTATION",
     ),
+
+    # =====================================================================
+    # Log File & Infrastructure PII Patterns
+    # =====================================================================
+
+    # --- Azure Connection Strings ---
+    PatternDef(
+        entity_type="CONNECTION_STRING",
+        pattern=re.compile(
+            r"DefaultEndpointsProtocol=https?;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]+"
+        ),
+        confidence=0.98,
+        entity_subtype="AZURE",
+    ),
+
+    # --- Azure SAS Tokens ---
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(
+            r"\?sv=\d{4}-\d{2}-\d{2}&[a-z]+=[\w%]+(?:&[a-z]+=[\w%]+)*&sig=[A-Za-z0-9+/%=]+"
+        ),
+        confidence=0.95,
+        entity_subtype="AZURE_SAS",
+    ),
+
+    # --- GCP API Keys ---
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"),
+        confidence=0.98,
+        entity_subtype="GCP",
+    ),
+
+    # --- GCP Service Account Emails ---
+    PatternDef(
+        entity_type="EMAIL",
+        pattern=re.compile(
+            r"\b[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.iam\.gserviceaccount\.com\b"
+        ),
+        confidence=0.98,
+        entity_subtype="GCP_SERVICE_ACCOUNT",
+    ),
+
+    # --- AWS ARNs ---
+    PatternDef(
+        entity_type="AWS_ARN",
+        pattern=re.compile(
+            r"\barn:aws:[a-z0-9*-]+:[a-z0-9*-]*:\d{0,12}:[a-zA-Z0-9/_+=.@:*-]+\b"
+        ),
+        confidence=0.95,
+    ),
+
+    # --- ODBC/JDBC Connection Strings ---
+    PatternDef(
+        entity_type="CONNECTION_STRING",
+        pattern=re.compile(
+            r"(?:Server|Data\s*Source|Host)=[^;]+;.*(?:Password|Pwd)=[^;\s]+",
+            re.IGNORECASE,
+        ),
+        confidence=0.95,
+        entity_subtype="ODBC",
+    ),
+    PatternDef(
+        entity_type="CONNECTION_STRING",
+        pattern=re.compile(
+            r"\bjdbc:[a-z]+://[^\s]+",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+        entity_subtype="JDBC",
+    ),
+
+    # --- CIDR Notation (IP ranges) ---
+    PatternDef(
+        entity_type="IP_ADDRESS",
+        pattern=re.compile(
+            r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)/(?:[12]?\d|3[0-2])\b"
+        ),
+        confidence=0.95,
+        entity_subtype="CIDR",
+        validator=_is_valid_ip.__wrapped__ if hasattr(_is_valid_ip, '__wrapped__') else lambda s: _is_valid_ip(s.split('/')[0]),
+    ),
+
+    # --- Vendor API Keys ---
+    # SendGrid
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b"),
+        confidence=0.98,
+        entity_subtype="SENDGRID",
+    ),
+    # Twilio
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\bSK[0-9a-fA-F]{32}\b"),
+        confidence=0.95,
+        entity_subtype="TWILIO",
+    ),
+    # Datadog
+    PatternDef(
+        entity_type="API_KEY",
+        pattern=re.compile(r"\b[0-9a-f]{32}\b(?=.*(?:datadog|dd-api|DD_API))", re.IGNORECASE),
+        confidence=0.90,
+        entity_subtype="DATADOG",
+    ),
+
+    # --- Session IDs in URLs ---
+    PatternDef(
+        entity_type="SESSION_ID",
+        pattern=re.compile(
+            r"[?&](?:JSESSIONID|PHPSESSID|sid|session_id|sess_id|_session|token)="
+            r"[A-Za-z0-9._%-]{8,128}",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+    ),
+
+    # --- X-Forwarded-For Header Chains ---
+    PatternDef(
+        entity_type="IP_ADDRESS",
+        pattern=re.compile(
+            r"X-Forwarded-For:\s*"
+            r"(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:\s*,\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})+",
+            re.IGNORECASE,
+        ),
+        confidence=0.95,
+        entity_subtype="FORWARDED_CHAIN",
+    ),
+
+    # --- Kubernetes Identifiers ---
+    # Pod names (namespace/pod-name-hash)
+    PatternDef(
+        entity_type="HOSTNAME",
+        pattern=re.compile(
+            r"\b[a-z0-9-]+/[a-z][a-z0-9-]*-[a-z0-9]{5,10}\b"
+        ),
+        confidence=0.80,
+        entity_subtype="K8S_POD",
+    ),
+    # Container registry paths
+    PatternDef(
+        entity_type="HOSTNAME",
+        pattern=re.compile(
+            r"\b(?:[\w.-]+\.)?(?:azurecr\.io|gcr\.io|ecr\.[a-z0-9-]+\.amazonaws\.com|ghcr\.io|docker\.io)"
+            r"/[a-z0-9._/-]+(?::[a-z0-9._-]+)?\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.85,
+        entity_subtype="CONTAINER_REGISTRY",
+    ),
+
+    # --- Docker Container IDs (64-char hex with context) ---
+    PatternDef(
+        entity_type="CONTAINER_ID",
+        pattern=re.compile(
+            r"(?:container[_ ]?(?:id)?|docker|cid)[:= ]+[0-9a-f]{12,64}\b",
+            re.IGNORECASE,
+        ),
+        confidence=0.88,
+    ),
+
+    # --- SSH/SCP User@Host ---
+    PatternDef(
+        entity_type="CREDENTIAL",
+        pattern=re.compile(
+            r"\b(?:ssh|scp|sftp|rsync)\s+(?:-[A-Za-z]+(?:\s+\S+)?\s+)*"
+            r"[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+",
+            re.IGNORECASE,
+        ),
+        confidence=0.90,
+        entity_subtype="SSH_LOGIN",
+    ),
 ]
 
 

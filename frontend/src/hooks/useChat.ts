@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { api, SanitizationEvent } from '../api/client'
+import { api, SanitizationEvent, ImageEvent } from '../api/client'
 
 export interface ChatMessage {
   id: string
@@ -87,6 +87,25 @@ export function useChat(options: UseChatOptions = {}) {
             : m
         )
       )
+    })
+
+    stream.onImage((imageData: ImageEvent) => {
+      // Convert image events to inline markdown for rendering
+      let imageMarkdown = ''
+      if (imageData.type === 'image_url' && imageData.url) {
+        imageMarkdown = `\n![Generated Image](${imageData.url})\n`
+      } else if (imageData.type === 'image_base64' && imageData.data) {
+        imageMarkdown = `\n![Generated Image](${imageData.data})\n`
+      }
+      if (imageMarkdown) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId
+              ? { ...m, content: m.content + imageMarkdown }
+              : m
+          )
+        )
+      }
     })
 
     stream.onDone((data) => {

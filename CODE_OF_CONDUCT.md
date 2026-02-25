@@ -42,7 +42,7 @@ an individual is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by opening a GitHub issue or contacting the maintainers directly. All complaints will be
+reported by opening a GitHub issue or contacting the maintainers at support@veilproxy.ai. All complaints will be
 reviewed and investigated promptly and fairly.
 
 ## Attribution

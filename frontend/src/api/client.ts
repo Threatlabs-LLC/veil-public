@@ -84,6 +84,12 @@ export interface ConversationDetail {
   entities: EntityData[]
 }
 
+export interface ImageEvent {
+  type: 'image_url' | 'image_base64'
+  url?: string | null
+  data?: string | null
+}
+
 export interface SanitizationEvent {
   original_text: string
   sanitized_text: string
@@ -608,6 +614,7 @@ export const api = {
     eventSource: AbortController
     onSanitization: (cb: (data: SanitizationEvent) => void) => void
     onToken: (cb: (content: string) => void) => void
+    onImage: (cb: (data: ImageEvent) => void) => void
     onDone: (cb: (data: Record<string, unknown>) => void) => void
     onError: (cb: (error: string) => void) => void
     start: () => Promise<void>
@@ -615,6 +622,7 @@ export const api = {
     const controller = new AbortController()
     let sanitizationCb: ((data: SanitizationEvent) => void) | null = null
     let tokenCb: ((content: string) => void) | null = null
+    let imageCb: ((data: ImageEvent) => void) | null = null
     let doneCb: ((data: Record<string, unknown>) => void) | null = null
     let errorCb: ((error: string) => void) | null = null
 
@@ -622,6 +630,7 @@ export const api = {
       eventSource: controller,
       onSanitization(cb) { sanitizationCb = cb },
       onToken(cb) { tokenCb = cb },
+      onImage(cb) { imageCb = cb },
       onDone(cb) { doneCb = cb },
       onError(cb) { errorCb = cb },
       async start() {
@@ -678,6 +687,9 @@ export const api = {
                     case 'token':
                       tokenCb?.(parsed.content)
                       break
+                    case 'image':
+                      imageCb?.(parsed)
+                      break
                     case 'done':
                       doneCb?.(parsed)
                       break
@@ -712,6 +724,7 @@ export const api = {
     eventSource: AbortController
     onSanitization: (cb: (data: SanitizationEvent) => void) => void
     onToken: (cb: (content: string) => void) => void
+    onImage: (cb: (data: ImageEvent) => void) => void
     onDone: (cb: (data: Record<string, unknown>) => void) => void
     onError: (cb: (error: string) => void) => void
     start: () => Promise<void>
@@ -719,6 +732,7 @@ export const api = {
     const controller = new AbortController()
     let sanitizationCb: ((data: SanitizationEvent) => void) | null = null
     let tokenCb: ((content: string) => void) | null = null
+    let imageCb: ((data: ImageEvent) => void) | null = null
     let doneCb: ((data: Record<string, unknown>) => void) | null = null
     let errorCb: ((error: string) => void) | null = null
 
@@ -726,6 +740,7 @@ export const api = {
       eventSource: controller,
       onSanitization(cb) { sanitizationCb = cb },
       onToken(cb) { tokenCb = cb },
+      onImage(cb) { imageCb = cb },
       onDone(cb) { doneCb = cb },
       onError(cb) { errorCb = cb },
       async start() {
@@ -771,6 +786,9 @@ export const api = {
                       break
                     case 'token':
                       tokenCb?.(parsed.content)
+                      break
+                    case 'image':
+                      imageCb?.(parsed)
                       break
                     case 'done':
                       doneCb?.(parsed)

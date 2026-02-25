@@ -21,7 +21,7 @@ User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
 
 | | VeilProxy | Custom Regex | Private AI (Opaque) | Portkey |
 |---|---|---|---|---|
-| **52+ built-in patterns** | Yes | You build them | Limited | No sanitization |
+| **76 built-in patterns** | Yes | You build them | Limited | No sanitization |
 | **NER (spaCy/Presidio)** | Yes | No | Yes | No |
 | **Policy engine (allow/redact/block/warn)** | Yes | No | Partial | No |
 | **Streaming rehydration** | Yes | No | No | N/A |
@@ -34,16 +34,18 @@ User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
 
 ## Key Features
 
-- **52+ built-in detection patterns** -- Regex-based detection for PII, financial data, credentials, and more, with optional Presidio/spaCy NER for deeper coverage
+- **76 built-in detection patterns** -- Regex-based detection for PII, financial data, credentials, log-file secrets, and more, with optional Presidio/spaCy NER for deeper coverage
+- **Log-file PII detection** -- Detects secrets in infrastructure logs: Azure/GCP/AWS keys, ODBC/JDBC connection strings, SendGrid, Twilio, Datadog, SSH/SCP URIs, Kubernetes tokens, Docker configs, CIDR ranges, session IDs, and X-Forwarded-For headers
 - **Policy engine** -- Configure per-entity-type actions: allow, redact, block, or warn, with customizable confidence thresholds
-- **Real-time streaming** -- SSE streaming with chunk-boundary placeholder rehydration; responses arrive instantly with data restored inline
+- **Multimodal streaming** -- SSE streaming with chunk-boundary placeholder rehydration; supports text and image content (image_url, image_base64) with responses arriving instantly
 - **OpenAI-compatible gateway** -- Drop-in replacement at `/v1/chat/completions`; change one line of code and all existing integrations work
+- **OpenAI Responses API** -- Image generation and multimodal responses via `POST /v1/responses` for image-capable models
 - **Multi-provider support** -- OpenAI, Anthropic, Ollama, and any OpenAI-compatible API endpoint
 - **Document scanning** -- Upload and scan PDF, DOCX, CSV, XLSX, and TXT files for sensitive data (processed in-memory, never stored)
 - **Audit logging and webhooks** -- Full event bus with async webhook delivery for compliance and monitoring
 - **Multi-user with RBAC** -- Organization-scoped users with role-based access control, Google OAuth, and password reset
 - **Custom detection rules** -- Define organization-specific regex or dictionary patterns through the admin UI or API
-- **Self-hosted via Docker** -- Single container, SQLite by default, PostgreSQL for enterprise scale
+- **Self-hosted via Docker** -- Docker Compose with Redis for distributed state, SQLite by default, PostgreSQL for enterprise scale
 
 ## Quick Start
 
@@ -116,7 +118,7 @@ flowchart LR
     E --> F[Stream & Rehydrate]
     F --> G[User Response]
 
-    B -.- B1["52+ regex patterns\n+ Presidio NER\n+ custom org rules"]
+    B -.- B1["76 regex patterns\n+ Presidio NER\n+ custom org rules"]
     C -.- C1["allow / redact\nblock / warn"]
     D -.- D1["PERSON_001\nEMAIL_001 ..."]
     F -.- F1["Placeholders restored\nin real time"]
@@ -129,7 +131,7 @@ flowchart LR
 User message
   |
   v
-Detect (52+ regex patterns + Presidio NER + custom org rules)
+Detect (76 regex patterns + Presidio NER + custom org rules)
   |
   v
 Policy evaluation (allow / redact / block / warn per entity type)

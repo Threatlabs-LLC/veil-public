@@ -15,8 +15,12 @@ services:
       - VEILCHAT_OPENAI_API_KEY=${VEILCHAT_OPENAI_API_KEY:-}
       - VEILCHAT_ANTHROPIC_API_KEY=${VEILCHAT_ANTHROPIC_API_KEY:-}
       - VEILCHAT_OLLAMA_BASE_URL=${VEILCHAT_OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+      - VEILCHAT_REDIS_URL=redis://redis:6379/0
       - VEILCHAT_LICENSE_PUBLIC_KEY_PATH=/app/keys/public_key.pem
       - VEILCHAT_CORS_ORIGINS=["http://localhost:8000"]
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live')"]
       interval: 30s
@@ -24,6 +28,16 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   veil-data:

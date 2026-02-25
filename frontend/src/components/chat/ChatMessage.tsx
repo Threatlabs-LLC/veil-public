@@ -95,6 +95,16 @@ export default function ChatMessage({ message }: Props) {
                 pre({ children }) {
                   return <>{children}</>
                 },
+                img({ src, alt }) {
+                  return (
+                    <img
+                      src={src}
+                      alt={alt || 'Generated image'}
+                      className="max-w-full rounded-lg my-2 border border-gray-700"
+                      loading="lazy"
+                    />
+                  )
+                },
                 a({ href, children }) {
                   return (
                     <a href={href} target="_blank" rel="noopener noreferrer" className="text-veil-400 hover:underline">

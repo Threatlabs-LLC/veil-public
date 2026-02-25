@@ -108,7 +108,8 @@ async def health_ready():
             await db.execute(text("SELECT 1"))
         checks["database"] = {"status": "ok"}
     except Exception as e:
-        checks["database"] = {"status": "error", "message": str(e)}
+        logger.error("Health check database error: %s", e, exc_info=True)
+        checks["database"] = {"status": "error", "message": "database unreachable"}
         overall = False
 
     # Event bus check
