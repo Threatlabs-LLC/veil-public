@@ -1,5 +1,7 @@
 # VeilProxy
 
+[![CI](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml/badge.svg)](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml)
+[![Docker Image](https://ghcr-badge.egpl.dev/threatlabs-llc/veil-public/latest_tag?trim=major&label=ghcr.io)](https://github.com/Threatlabs-LLC/veil-public/pkgs/container/veil-public)
 [![License: BSL-1.1](https://img.shields.io/badge/License-BSL--1.1-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
@@ -14,6 +16,21 @@ LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
   |  LLM responds using placeholders
 User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
 ```
+
+## Why VeilProxy?
+
+| | VeilProxy | Custom Regex | Private AI (Opaque) | Portkey |
+|---|---|---|---|---|
+| **52+ built-in patterns** | Yes | You build them | Limited | No sanitization |
+| **NER (spaCy/Presidio)** | Yes | No | Yes | No |
+| **Policy engine (allow/redact/block/warn)** | Yes | No | Partial | No |
+| **Streaming rehydration** | Yes | No | No | N/A |
+| **OpenAI-compatible gateway** | Yes | No | No | Yes |
+| **Multi-provider (OpenAI, Anthropic, Ollama)** | Yes | Manual | Limited | Yes |
+| **Self-hosted / air-gapped** | Yes | Yes | No (SaaS) | No (SaaS) |
+| **Open source** | Yes (BSL-1.1) | N/A | No | Partial |
+| **Custom org rules** | Yes | Manual | No | No |
+| **Audit logging + webhooks** | Yes | No | Partial | Yes |
 
 ## Key Features
 
@@ -90,6 +107,24 @@ Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible cl
 
 ## How It Works
 
+```mermaid
+flowchart LR
+    A[User Message] --> B[Detect]
+    B --> C[Policy Eval]
+    C --> D[Map & Replace]
+    D --> E[LLM Provider]
+    E --> F[Stream & Rehydrate]
+    F --> G[User Response]
+
+    B -.- B1["52+ regex patterns\n+ Presidio NER\n+ custom org rules"]
+    C -.- C1["allow / redact\nblock / warn"]
+    D -.- D1["PERSON_001\nEMAIL_001 ..."]
+    F -.- F1["Placeholders restored\nin real time"]
+```
+
+<details>
+<summary>Text-based diagram (non-GitHub viewers)</summary>
+
 ```
 User message
   |
@@ -111,6 +146,8 @@ Stream response back, rehydrating placeholders in real time
   v
 User receives clean response with original data restored
 ```
+
+</details>
 
 Placeholders are consistent within a session -- if "John Smith" maps to `PERSON_001`, every occurrence is replaced and restored the same way, preserving context across multi-turn conversations.
 
@@ -136,6 +173,7 @@ All environment variables use the `VEILCHAT_` prefix. See [`.env.example`](.env.
 - [Architecture](docs/ARCHITECTURE.md) -- System design and sanitization pipeline
 - [Deployment Guide](docs/DEPLOYMENT.md) -- Docker, Kubernetes, and reverse proxy configurations
 - [`.env.example`](.env.example) -- All configuration options with comments
+- [CONTRIBUTING.md](CONTRIBUTING.md) -- Development setup, coding standards, PR process
 
 ## Contributing
 
@@ -150,6 +188,13 @@ cp .env.example .env
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+## Community
+
+- [GitHub Issues](https://github.com/Threatlabs-LLC/veil-public/issues) -- Bug reports and feature requests
+- [GitHub Discussions](https://github.com/Threatlabs-LLC/veil-public/discussions) -- Questions, ideas, show & tell
+- [Changelog](https://github.com/Threatlabs-LLC/veil-public/releases) -- Release notes and what's new
+- [Substack](https://veilproxy.substack.com) -- Blog, tutorials, and product updates
+
 ## Cloud Version
 
 For managed hosting with no infrastructure to maintain, visit [app.veilproxy.ai](https://app.veilproxy.ai). The cloud version includes automatic updates, PostgreSQL storage, and priority support.
@@ -163,3 +208,11 @@ VeilProxy is licensed under the [Business Source License 1.1](LICENSE) (BSL-1.1)
 ---
 
 Built by [Threatlabs LLC](https://github.com/Threatlabs-LLC) -- [veilproxy.ai](https://veilproxy.ai)
+
+<a href="https://star-history.com/#Threatlabs-LLC/veil-public&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Threatlabs-LLC/veil-public&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Threatlabs-LLC/veil-public&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Threatlabs-LLC/veil-public&type=Date" width="600" />
+  </picture>
+</a>

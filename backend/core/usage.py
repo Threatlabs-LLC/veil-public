@@ -1,4 +1,4 @@
-"""Usage tracking and metering — the billing foundation for SaaS.
+"""Usage tracking and metering.
 
 Tracks every request: tokens, entities, provider, model, latency, cost.
 Aggregates to daily rollups in usage_stats table.

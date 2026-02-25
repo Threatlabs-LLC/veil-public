@@ -17,9 +17,6 @@ git clone https://github.com/Threatlabs-LLC/veil-public.git
 cd veil-public
 
 # Backend
-pip install -e ".[dev]"
-
-# Optional: NER support (Presidio + spaCy)
 pip install -e ".[ner]"
 python -m spacy download en_core_web_md
 

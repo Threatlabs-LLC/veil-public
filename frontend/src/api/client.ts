@@ -524,40 +524,6 @@ export const api = {
     return res.json()
   },
 
-  // --- Billing (cloud mode) ---
-
-  async getSubscription(): Promise<{
-    tier: string; subscription_status: string | null;
-    stripe_customer_id: string | null; has_subscription: boolean;
-    billing_email: string | null
-  }> {
-    const res = await authFetch(`${BASE_URL}/billing/subscription`)
-    if (!res.ok) throw new Error('Failed to load subscription')
-    return res.json()
-  },
-
-  async createCheckout(tier: string): Promise<{ checkout_url: string }> {
-    const res = await authFetch(`${BASE_URL}/billing/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || 'Failed to create checkout')
-    }
-    return res.json()
-  },
-
-  async getBillingPortal(): Promise<{ portal_url: string }> {
-    const res = await authFetch(`${BASE_URL}/billing/portal`)
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.detail || 'Failed to get billing portal')
-    }
-    return res.json()
-  },
-
   // --- Password Reset ---
 
   async forgotPassword(email: string): Promise<{ status: string; message: string }> {
