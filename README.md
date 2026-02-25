@@ -240,9 +240,8 @@ python -m pytest backend/tests/ -v
 
 | Document | Description |
 |:---------|:-----------|
-| [API Reference](docs/API.md) | Full endpoint documentation |
-| [Architecture](docs/ARCHITECTURE.md) | System design and sanitization pipeline |
-| [Deployment Guide](docs/DEPLOYMENT.md) | Docker, Kubernetes, and reverse proxy configurations |
+| [API Reference](https://veilproxy.ai/docs/) | Full endpoint documentation |
+| [Deployment Guide](https://veilproxy.ai/deploy/) | Docker, Kubernetes, and reverse proxy configurations |
 | [`.env.example`](.env.example) | All configuration options with comments |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, coding standards, PR process |
 

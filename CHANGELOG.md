@@ -1,17 +1,29 @@
 # Changelog
 
-## v0.3.0 — Multimodal, Log Detection & State Management
+## v0.3.0 — Multimodal, Log Detection & Hardening
 
 ### New Features
 - **Multimodal support**: Image generation via OpenAI Responses API provider
 - **OpenAI Responses API provider**: New provider backend for image generation workflows
 - **State store**: Server-side session state management for improved session handling
+- **Capabilities endpoint**: `GET /api/auth/capabilities` returns available features (password reset, Google OAuth)
+- **Docker CI/CD**: Automated Docker image publishing to ghcr.io on version tags with old image cleanup
 
 ### Detection Enhancements
 - **Log file PII detection patterns**: Azure resource IDs, GCP project/resource paths, AWS ARNs, CIDR notation, Kubernetes resource names, Docker container IDs, SSH key fingerprints, vendor API keys (Datadog, Splunk, PagerDuty, etc.), session IDs
 
+### Bug Fixes
+- **OpenAI reasoning model fix**: o3-mini, o1, o3 models now work correctly — strips unsupported `temperature`/`max_tokens` params, uses `max_completion_tokens` instead
+- **Settings page crash**: Fixed `org.name.charAt(0)` crash when organization name is undefined
+- **Responses API error clarity**: 403 errors from OpenAI Responses API now return clear message about API key tier requirements
+
 ### Security
+- **OAuth account takeover fix**: Google OAuth no longer auto-links to existing password accounts by email match — prevents account hijacking
 - **Sanitized provider errors**: LLM provider error messages are now sanitized before being returned to clients, preventing accidental leakage of API keys or internal URLs in error responses
+- **Webhook delivery retry**: Failed webhook deliveries now retry 3 times with exponential backoff (1s/2s/4s), only on 5xx and connection errors
+
+### Infrastructure
+- **Redis support**: Optional Redis (`VEILCHAT_REDIS_URL`) for distributed rate limiting in multi-worker deployments
 
 ---
 
