@@ -1,51 +1,34 @@
-# VeilProxy
+<p align="center">
+  <img src=".github/readme/header.png" alt="VeilProxy" width="100%" />
+</p>
 
-[![CI](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml/badge.svg)](https://github.com/Threatlabs-LLC/veil-public/actions/workflows/ci.yml)
-[![Docker Image](https://ghcr-badge.egpl.dev/threatlabs-llc/veil-public/latest_tag?trim=major&label=ghcr.io)](https://github.com/Threatlabs-LLC/veil-public/pkgs/container/veil-public)
-[![License: BSL-1.1](https://img.shields.io/badge/License-BSL--1.1-blue.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](docker-compose.yml)
+<p align="center">
+  <a href="https://github.com/Threatlabs-LLC/veil-public/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-BSL_1.1-7C8BF5?style=flat-square&labelColor=161A2B" alt="License" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/python-3.12-5B6BC0?style=flat-square&logo=python&logoColor=white&labelColor=161A2B" alt="Python" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/react-19-5B6BC0?style=flat-square&logo=react&logoColor=white&labelColor=161A2B" alt="React" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/docker-ready-64FFDA?style=flat-square&logo=docker&logoColor=white&labelColor=161A2B" alt="Docker" /></a>
+  <a href="#testing"><img src="https://img.shields.io/badge/tests-792_passing-64FFDA?style=flat-square&labelColor=161A2B" alt="Tests" /></a>
+  <a href="https://veilproxy.ai"><img src="https://img.shields.io/badge/website-veilproxy.ai-7C8BF5?style=flat-square&labelColor=161A2B" alt="Website" /></a>
+  <a href="https://app.veilproxy.ai"><img src="https://img.shields.io/badge/cloud-app.veilproxy.ai-64FFDA?style=flat-square&labelColor=161A2B" alt="Cloud" /></a>
+</p>
 
-VeilProxy is an enterprise LLM sanitization proxy that sits between your application and any LLM provider. It detects sensitive data -- names, emails, SSNs, credit card numbers, API keys, and dozens more entity types -- replaces them with consistent placeholders, forwards the sanitized text to the LLM, and rehydrates the response before it reaches the user. The AI never sees your real data.
+<p align="center">
+  Enterprise LLM sanitization proxy — intercepts messages to AI providers, detects and replaces PII with consistent placeholders, forwards sanitized content, and rehydrates responses. <strong>The LLM never sees real data.</strong>
+</p>
 
-```
-User: "John Smith at john@acme.com called from 192.168.1.50"
-  |  VeilProxy detects and replaces
-LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
-  |  LLM responds using placeholders
-User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
-```
+<br/>
 
-## Why VeilProxy?
+<p align="center">
+  <img src=".github/readme/before-after.png" alt="What the LLM sees" width="100%" />
+</p>
 
-| | VeilProxy | Custom Regex | Private AI (Opaque) | Portkey |
-|---|---|---|---|---|
-| **76 built-in patterns** | Yes | You build them | Limited | No sanitization |
-| **NER (spaCy/Presidio)** | Yes | No | Yes | No |
-| **Policy engine (allow/redact/block/warn)** | Yes | No | Partial | No |
-| **Streaming rehydration** | Yes | No | No | N/A |
-| **OpenAI-compatible gateway** | Yes | No | No | Yes |
-| **Multi-provider (OpenAI, Anthropic, Ollama)** | Yes | Manual | Limited | Yes |
-| **Self-hosted / air-gapped** | Yes | Yes | No (SaaS) | No (SaaS) |
-| **Open source** | Yes (BSL-1.1) | N/A | No | Partial |
-| **Custom org rules** | Yes | Manual | No | No |
-| **Audit logging + webhooks** | Yes | No | Partial | Yes |
+<br/>
 
-## Key Features
+<p align="center">
+  <img src=".github/readme/screenshot-chat.png" alt="VeilProxy Chat Interface" width="100%" />
+</p>
 
-- **76 built-in detection patterns** -- Regex-based detection for PII, financial data, credentials, log-file secrets, and more, with optional Presidio/spaCy NER for deeper coverage
-- **Log-file PII detection** -- Detects secrets in infrastructure logs: Azure/GCP/AWS keys, ODBC/JDBC connection strings, SendGrid, Twilio, Datadog, SSH/SCP URIs, Kubernetes tokens, Docker configs, CIDR ranges, session IDs, and X-Forwarded-For headers
-- **Policy engine** -- Configure per-entity-type actions: allow, redact, block, or warn, with customizable confidence thresholds
-- **Multimodal streaming** -- SSE streaming with chunk-boundary placeholder rehydration; supports text and image content (image_url, image_base64) with responses arriving instantly
-- **OpenAI-compatible gateway** -- Drop-in replacement at `/v1/chat/completions`; change one line of code and all existing integrations work
-- **OpenAI Responses API** -- Image generation and multimodal responses via `POST /v1/responses` for image-capable models
-- **Multi-provider support** -- OpenAI, Anthropic, Ollama, and any OpenAI-compatible API endpoint
-- **Document scanning** -- Upload and scan PDF, DOCX, CSV, XLSX, and TXT files for sensitive data (processed in-memory, never stored)
-- **Audit logging and webhooks** -- Full event bus with async webhook delivery for compliance and monitoring
-- **Multi-user with RBAC** -- Organization-scoped users with role-based access control, Google OAuth, and password reset
-- **Custom detection rules** -- Define organization-specific regex or dictionary patterns through the admin UI or API
-- **Self-hosted via Docker** -- Docker Compose with Redis for distributed state, SQLite by default, PostgreSQL for enterprise scale
+---
 
 ## Quick Start
 
@@ -85,6 +68,63 @@ For fully air-gapped deployments, point VeilProxy at a local Ollama instance:
 VEILCHAT_OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
 ```
 
+---
+
+## How It Works
+
+<p align="center">
+  <img src=".github/readme/flow.png" alt="Sanitization Pipeline" width="100%" />
+</p>
+
+```
+User: "John Smith at john@acme.com called from 192.168.1.50"
+  |  VeilProxy detects and replaces
+LLM:  "PERSON_001 at EMAIL_001 called from IP_ADDRESS_001"
+  |  LLM responds using placeholders
+User: "John Smith's email john@acme.com was confirmed"  <-- rehydrated
+```
+
+Placeholders are consistent within a session -- if "John Smith" maps to `PERSON_001`, every occurrence is replaced and restored the same way, preserving context across multi-turn conversations.
+
+---
+
+## Key Features
+
+<p align="center">
+  <img src=".github/readme/features.png" alt="Features" width="100%" />
+</p>
+
+- **76 built-in detection patterns** -- Regex-based detection for PII, financial data, credentials, log-file secrets, and more, with optional Presidio/spaCy NER for deeper coverage
+- **Log-file PII detection** -- Detects secrets in infrastructure logs: Azure/GCP/AWS keys, ODBC/JDBC connection strings, SendGrid, Twilio, Datadog, SSH/SCP URIs, Kubernetes tokens, Docker configs, CIDR ranges, session IDs, and X-Forwarded-For headers
+- **Policy engine** -- Configure per-entity-type actions: allow, redact, block, or warn, with customizable confidence thresholds
+- **Multimodal streaming** -- SSE streaming with chunk-boundary placeholder rehydration; supports text and image content types with responses arriving instantly
+- **OpenAI-compatible gateway** -- Drop-in replacement at `/v1/chat/completions`; change one line of code and all existing integrations work
+- **Multi-provider support** -- OpenAI, Anthropic, Ollama, and any OpenAI-compatible API endpoint
+- **Document scanning** -- Upload and scan PDF, DOCX, CSV, XLSX, and TXT files for sensitive data (processed in-memory, never stored)
+- **Audit logging and webhooks** -- Full event bus with async webhook delivery for compliance and monitoring
+- **Multi-user with RBAC** -- Organization-scoped users with role-based access control, Google OAuth, and password reset
+- **Custom detection rules** -- Define organization-specific regex or dictionary patterns through the admin UI or API
+- **Self-hosted via Docker** -- Docker Compose with Redis for distributed state, SQLite by default, PostgreSQL for enterprise scale
+
+---
+
+## Why VeilProxy?
+
+| Feature | VeilProxy | Nightfall AI | LLM Guard | Strac | Endpoint DLP |
+|:--------|:---------:|:------------:|:---------:|:-----:|:------------:|
+| **Self-hosted** | Yes | No | Yes | No | Agent-based |
+| **Open-source** | Yes (BSL 1.1) | No | Yes (Apache) | No | No |
+| **Built-in Chat UI** | Yes | No | No | No | No |
+| **OpenAI-compatible gateway** | Yes | No | No | No | No |
+| **Reversible pseudonymization** | Yes | No | No | No | No |
+| **Deploy time** | 60 sec | Weeks | Hours | Days | Weeks |
+| **Free tier** | Forever | No | Yes (lib) | Limited | No |
+| **Air-gap / Ollama** | Yes | No | Partial | No | N/A |
+| **Document scanning** | Yes | Yes | No | No | Yes |
+| **Streaming SSE** | Yes | No | No | No | N/A |
+
+---
+
 ## Gateway Mode
 
 VeilProxy exposes an OpenAI-compatible API at `/v1/chat/completions`. Point any existing OpenAI SDK integration at VeilProxy by changing a single line:
@@ -107,51 +147,49 @@ print(response.choices[0].message.content)
 
 Works with LangChain, LlamaIndex, Cursor, Continue, and any OpenAI-compatible client. All outbound requests are sanitized automatically. Responses are rehydrated before they reach your code. No other changes required.
 
-## How It Works
+---
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[User Message] --> B[Detect]
-    B --> C[Policy Eval]
-    C --> D[Map & Replace]
-    D --> E[LLM Provider]
-    E --> F[Stream & Rehydrate]
-    F --> G[User Response]
+    subgraph USER["User"]
+        A["Prompt with PII"]
+    end
 
-    B -.- B1["76 regex patterns\n+ Presidio NER\n+ custom org rules"]
-    C -.- C1["allow / redact\nblock / warn"]
-    D -.- D1["PERSON_001\nEMAIL_001 ..."]
-    F -.- F1["Placeholders restored\nin real time"]
+    subgraph VEIL["VeilProxy"]
+        direction TB
+        B["Detect<br/><small>76 regex + NER + custom rules</small>"]
+        C["Policy Engine<br/><small>allow / redact / block / warn</small>"]
+        D["Map to Placeholders<br/><small>PERSON_001 / EMAIL_001</small>"]
+        B --> C --> D
+    end
+
+    subgraph LLM["LLM Provider"]
+        E["Sees only<br/>clean placeholders"]
+    end
+
+    subgraph RESPONSE["Response"]
+        F["Rehydrated<br/>original data restored"]
+    end
+
+    A -->|"raw prompt"| B
+    D -->|"sanitized"| E
+    E -->|"response"| F
+
+    style USER fill:#161A2B,stroke:#2A2F45,color:#E8EAED
+    style VEIL fill:#161A2B,stroke:#5B6BC0,color:#E8EAED
+    style LLM fill:#161A2B,stroke:#2A2F45,color:#E8EAED
+    style RESPONSE fill:#161A2B,stroke:#64FFDA,color:#E8EAED
 ```
 
-<details>
-<summary>Text-based diagram (non-GitHub viewers)</summary>
+**Stack**: Python 3.12 / FastAPI / SQLAlchemy async / React 19 / TypeScript / Vite / Tailwind CSS
 
-```
-User message
-  |
-  v
-Detect (76 regex patterns + Presidio NER + custom org rules)
-  |
-  v
-Policy evaluation (allow / redact / block / warn per entity type)
-  |
-  v
-Map entities to consistent placeholders (PERSON_001, EMAIL_001, ...)
-  |
-  v
-Forward sanitized text to LLM provider
-  |
-  v
-Stream response back, rehydrating placeholders in real time
-  |
-  v
-User receives clean response with original data restored
-```
+**Database**: SQLite WAL (dev/self-hosted) or PostgreSQL + asyncpg (enterprise)
 
-</details>
+**Auth**: JWT + bcrypt + Google OAuth + SMTP password reset
 
-Placeholders are consistent within a session -- if "John Smith" maps to `PERSON_001`, every occurrence is replaced and restored the same way, preserving context across multi-turn conversations.
+---
 
 ## Configuration
 
@@ -169,26 +207,52 @@ All environment variables use the `VEILCHAT_` prefix. See [`.env.example`](.env.
 | `VEILCHAT_SMTP_HOST` | No | SMTP server for password reset emails |
 | `VEILCHAT_SMTP_FROM_EMAIL` | No | From address for outbound emails |
 
+---
+
+## Development Setup
+
+**Prerequisites**: Python 3.12+, Node.js 18+
+
+```bash
+# Backend
+pip install -e ".[dev]"
+uvicorn backend.main:app --reload --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Testing
+
+```bash
+python -m pytest backend/tests/ -v
+```
+
+792 tests across 13 test files. Covers detection accuracy, security hardening, performance benchmarks, API route coverage, core pipeline logic, policy engine, PII corpus testing across 12 real-world log formats, and multimodal streaming.
+
+---
+
 ## Documentation
 
-- [API Reference](docs/API.md) -- Full endpoint documentation
-- [Architecture](docs/ARCHITECTURE.md) -- System design and sanitization pipeline
-- [Deployment Guide](docs/DEPLOYMENT.md) -- Docker, Kubernetes, and reverse proxy configurations
-- [`.env.example`](.env.example) -- All configuration options with comments
-- [CONTRIBUTING.md](CONTRIBUTING.md) -- Development setup, coding standards, PR process
+| Document | Description |
+|:---------|:-----------|
+| [API Reference](docs/API.md) | Full endpoint documentation |
+| [Architecture](docs/ARCHITECTURE.md) | System design and sanitization pipeline |
+| [Deployment Guide](docs/DEPLOYMENT.md) | Docker, Kubernetes, and reverse proxy configurations |
+| [`.env.example`](.env.example) | All configuration options with comments |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, coding standards, PR process |
+
+---
 
 ## Contributing
 
 We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions, coding standards, and the pull request process.
 
-```bash
-# Quick dev setup
-git clone https://github.com/Threatlabs-LLC/veil-public.git && cd veil-public
-pip install -e ".[dev]"
-cd frontend && npm install && cd ..
-cp .env.example .env
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
+---
 
 ## Community
 
@@ -197,9 +261,13 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 - [Changelog](https://github.com/Threatlabs-LLC/veil-public/releases) -- Release notes and what's new
 - [Substack](https://veilproxy.substack.com) -- Blog, tutorials, and product updates
 
+---
+
 ## Cloud Version
 
 For managed hosting with no infrastructure to maintain, visit [app.veilproxy.ai](https://app.veilproxy.ai). The cloud version includes automatic updates, PostgreSQL storage, and priority support.
+
+---
 
 ## License
 
@@ -209,7 +277,13 @@ VeilProxy is licensed under the [Business Source License 1.1](LICENSE) (BSL-1.1)
 
 ---
 
-Built by [Threatlabs LLC](https://github.com/Threatlabs-LLC) -- [veilproxy.ai](https://veilproxy.ai)
+<p align="center">
+  <img src=".github/readme/divider.png" alt="" width="60%" />
+</p>
+
+<p align="center">
+  <sub>Built by <a href="https://github.com/Threatlabs-LLC">Threatlabs LLC</a> · <a href="https://veilproxy.ai">veilproxy.ai</a> · <a href="https://app.veilproxy.ai">Try Cloud</a></sub>
+</p>
 
 <a href="https://star-history.com/#Threatlabs-LLC/veil-public&Date">
   <picture>
