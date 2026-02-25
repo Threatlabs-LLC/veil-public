@@ -36,7 +36,6 @@ from backend.models.rule import DetectionRule
 from backend.models.user import User
 from backend.providers.base import ChatMessage
 from backend.providers.openai_compat import OpenAICompatProvider
-from backend.providers.openai_responses import OpenAIResponsesProvider, is_responses_capable
 from backend.providers.anthropic import AnthropicProvider
 
 router = APIRouter()
@@ -54,11 +53,7 @@ class ChatRequest(BaseModel):
 
 
 async def _get_provider(provider_name: str, org_id: str, db, model: str = ""):
-    """Get the appropriate LLM provider, resolving keys from org settings or env.
-
-    For OpenAI models that support image generation (gpt-4o, etc.), uses the
-    Responses API provider. Other models use the Chat Completions provider.
-    """
+    """Get the appropriate LLM provider, resolving keys from org settings or env."""
     from backend.core.provider_keys import get_provider_key
 
     api_key, base_url = await get_provider_key(provider_name, org_id, db)
@@ -73,9 +68,6 @@ async def _get_provider(provider_name: str, org_id: str, db, model: str = ""):
     else:
         if not api_key:
             raise HTTPException(400, "OpenAI API key not configured. Set it in Settings.")
-        # Use Responses API for image-capable models (only with OpenAI's own API)
-        if is_responses_capable(model) and base_url == "https://api.openai.com/v1":
-            return OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
         return OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
 

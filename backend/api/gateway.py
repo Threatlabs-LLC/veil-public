@@ -178,7 +178,6 @@ async def gateway_chat_completions(
     from backend.core.provider_keys import get_provider_key
     from backend.providers.base import ChatMessage
     from backend.providers.openai_compat import OpenAICompatProvider
-    from backend.providers.openai_responses import OpenAIResponsesProvider, is_responses_capable
     from backend.providers.anthropic import AnthropicProvider
 
     api_key, base_url = await get_provider_key(provider_name, user.organization_id, db)
@@ -193,11 +192,7 @@ async def gateway_chat_completions(
     else:
         if not api_key:
             raise HTTPException(400, {"error": {"message": "OpenAI API key not configured. Set it in Settings."}})
-        # Use Responses API for image-capable models (only with OpenAI's own API)
-        if is_responses_capable(model) and base_url == "https://api.openai.com/v1":
-            provider = OpenAIResponsesProvider(api_key=api_key, base_url=base_url)
-        else:
-            provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
+        provider = OpenAICompatProvider(api_key=api_key, base_url=base_url)
 
     llm_messages = [ChatMessage(role=m["role"], content=m["content"]) for m in sanitized_messages]
 
