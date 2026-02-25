@@ -16,6 +16,10 @@ import httpx
 from backend.providers.base import BaseLLMProvider, ChatMessage, StreamChunk
 
 
+# OpenAI reasoning models that reject temperature, top_p, and max_tokens
+REASONING_MODELS = {"o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o3-pro", "o4-mini"}
+
+
 class OpenAICompatProvider(BaseLLMProvider):
     """OpenAI-compatible chat completions provider with streaming support."""
 
@@ -43,13 +47,21 @@ class OpenAICompatProvider(BaseLLMProvider):
         """Stream chat completion via SSE."""
         url = f"{self._base_url}/chat/completions"
 
+        is_reasoning = model in REASONING_MODELS
+
         payload = {
             "model": model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
             "stream": True,
         }
+
+        if is_reasoning:
+            # Reasoning models use max_completion_tokens, not max_tokens,
+            # and do not accept temperature or top_p.
+            payload["max_completion_tokens"] = max_tokens
+        else:
+            payload["temperature"] = temperature
+            payload["max_tokens"] = max_tokens
 
         headers = {
             "Authorization": f"Bearer {self._api_key}",

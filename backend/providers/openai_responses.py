@@ -92,6 +92,12 @@ class OpenAIResponsesProvider(BaseLLMProvider):
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             async with client.stream("POST", url, json=payload, headers=headers) as response:
+                if response.status_code == 403:
+                    raise RuntimeError(
+                        "OpenAI Responses API returned 403 Forbidden. "
+                        "Your API key may not have access to the Responses API "
+                        "(required for image generation). Check your OpenAI account tier and permissions."
+                    )
                 response.raise_for_status()
 
                 # Parse SSE: event/data pairs come as sequential lines

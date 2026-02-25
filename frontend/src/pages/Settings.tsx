@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Save, Key, Cpu, SlidersHorizontal, Plus, Trash2, Copy, Check, AlertTriangle, Building, Award, Upload, X, ShieldCheck } from 'lucide-react'
 import { api } from '../api/client'
 import type { ApiKeyData } from '../api/client'
+import { useToast } from '../components/Toast'
 
 interface OrgSettings {
   openai_api_key: string
@@ -70,12 +71,12 @@ export default function Settings() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <header className="h-14 border-b border-gray-800 flex items-center px-4 gap-4">
+      <header className="h-14 border-b border-gray-800 flex items-center px-4 pl-14 md:pl-4 gap-4">
         <SlidersHorizontal className="w-5 h-5 text-veil-500" />
         <span className="font-medium">Settings</span>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-2xl space-y-8">
           {/* API Keys */}
           <section>
@@ -124,7 +125,7 @@ export default function Settings() {
               <Cpu className="w-4 h-4 text-gray-400" />
               <h2 className="text-lg font-semibold">Model Defaults</h2>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Default Provider</label>
                 <select
@@ -221,6 +222,7 @@ interface OrgProfile {
 }
 
 function OrgSection() {
+  const { toast } = useToast()
   const [org, setOrg] = useState<OrgProfile | null>(null)
   const [name, setName] = useState('')
   const [orgSaving, setOrgSaving] = useState(false)
@@ -236,7 +238,7 @@ function OrgSection() {
         setOrg(data)
         setName(data.name)
       })
-      .catch((e) => setError(e.message))
+      .catch(() => toast('error', 'Failed to load organization profile'))
   }, [])
 
   const handleSaveOrg = async () => {
@@ -276,7 +278,7 @@ function OrgSection() {
 
       <div className="flex items-center gap-4 mb-4 p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
         <div className="w-12 h-12 rounded-xl bg-veil-600/30 flex items-center justify-center text-xl font-bold text-veil-400">
-          {org.name.charAt(0).toUpperCase()}
+          {(org.name || 'O').charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
           <div className="font-medium">{org.name}</div>
@@ -413,7 +415,7 @@ function LicenseSection() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-500">Max Users</span>
             <p className="font-medium">{license.max_users >= 999999 ? 'Unlimited' : license.max_users}</p>
@@ -561,8 +563,8 @@ function ApiKeysSection() {
       )}
 
       {/* Keys table */}
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead className="bg-gray-800">
             <tr>
               <th className="text-left p-3 text-gray-400 font-medium">Name</th>
