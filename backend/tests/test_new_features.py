@@ -108,8 +108,6 @@ async def team_client(new_db_engine, monkeypatch):
     from backend.middleware.rate_limit import RateLimitMiddleware
 
     # Bypass SSRF validator in tests (DNS resolution fails for fake hostnames)
-    import backend.api.webhooks as webhooks_mod
-    import backend.api.settings as settings_mod
     monkeypatch.setattr(
         "backend.core.url_validator.is_safe_url",
         lambda url: (True, "OK"),
@@ -285,10 +283,8 @@ class TestWebhooks:
         # Simplest: patch org settings directly through settings API
         # Actually, we'll set org tier via the admin-level approach
         # Fastest: just PATCH the org tier through a raw settings call
-        import json
-        from httpx import AsyncClient
         # Get current settings
-        res = await client.get("/api/settings", headers=headers)
+        _res = await client.get("/api/settings", headers=headers)
         # Update tier through internal DB — we need to use the licensing endpoint
         # But there's no public key set up in tests. Instead, directly use the DB.
         # For test simplicity, let's call the deactivate which resets to community,
@@ -658,7 +654,7 @@ class TestLicensing:
 
     async def test_tier_definitions(self):
         """Tier definitions should be consistent."""
-        from backend.licensing.tiers import TIERS, get_tier, tier_at_least, tier_has_feature, FEATURE_WEBHOOKS
+        from backend.licensing.tiers import get_tier, tier_at_least, tier_has_feature, FEATURE_WEBHOOKS
 
         assert get_tier("free").level == 0
         assert get_tier("solo").level == 1

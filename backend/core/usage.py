@@ -5,7 +5,7 @@ Aggregates to daily rollups in usage_stats table.
 """
 
 import time
-from datetime import date, datetime, timezone
+from datetime import date
 from dataclasses import dataclass
 
 from sqlalchemy import select

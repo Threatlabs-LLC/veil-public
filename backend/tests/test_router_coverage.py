@@ -3,8 +3,7 @@
 Covers the 6 routers that previously had no dedicated tests.
 """
 
-import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
@@ -29,7 +28,6 @@ async def _upgrade_org_tier(client: AsyncClient, token: str, tier: str = "team")
         gen = override()
         db = await gen.__anext__()
         try:
-            from sqlalchemy import select
             from backend.models.user import User
             from backend.models.organization import Organization
             from jose import jwt

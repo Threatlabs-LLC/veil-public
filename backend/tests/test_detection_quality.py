@@ -12,10 +12,8 @@ Comprehensive PII detection accuracy testing across:
 Each test class tracks precision (no false positives) and recall (no misses).
 """
 
-import json
-import pytest
 from backend.detectors.regex_detector import RegexDetector
-from backend.detectors.registry import DetectorRegistry, create_default_registry
+from backend.detectors.registry import create_default_registry
 from backend.core.sanitizer import Sanitizer
 from backend.core.mapper import EntityMapper
 
@@ -438,7 +436,7 @@ class TestFalsePositives:
         """Dates in MM-DD-YYYY format should ideally not match SSN pattern."""
         # Note: some overlap is expected — this tests awareness of the issue
         text = "Meeting on 12-15-2024."
-        results = _detect(text)
+        _results = _detect(text)
         # This may produce SSN false positive due to pattern overlap
         # We document this as a known limitation
         pass  # Awareness test

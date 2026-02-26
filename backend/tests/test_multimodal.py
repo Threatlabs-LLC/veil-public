@@ -2,7 +2,6 @@
 flow through the proxy without being dropped or processed by the rehydrator."""
 
 import json
-import pytest
 
 from backend.providers.base import StreamChunk
 from backend.core.mapper import EntityMapper

@@ -14,7 +14,7 @@ import csv
 import io
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────

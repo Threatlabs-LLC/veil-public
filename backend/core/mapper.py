@@ -8,7 +8,7 @@ Same entity always gets the same placeholder within a session.
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from backend.core.normalizer import normalize_entity
 

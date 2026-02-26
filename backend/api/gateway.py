@@ -33,7 +33,6 @@ from backend.core.sanitizer import Sanitizer
 from backend.core.usage import UsageTracker, record_usage
 from backend.db.session import get_db, async_session as async_session_factory
 from backend.detectors.registry import create_default_registry
-from backend.models.entity import MappingSession
 from backend.models.rule import DetectionRule
 from backend.models.user import User
 

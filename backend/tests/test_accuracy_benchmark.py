@@ -577,7 +577,7 @@ def test_true_positive(sample: AnnotatedSample, registry, ner_available, scorer)
     detected = registry.detect_all(sample.text)
     skip_ner = not ner_available
 
-    deltas = scorer.score_sample(detected, sample.expected, skip_ner=skip_ner)
+    _deltas = scorer.score_sample(detected, sample.expected, skip_ner=skip_ner)
 
     # Filter to non-NER expectations for assertion
     relevant_expected = [

@@ -2,9 +2,7 @@
 
 import json
 
-import pytest
 
-from backend.detectors.base import DetectedEntity
 from backend.detectors.regex_detector import RegexDetector, _luhn_check, _is_valid_ip
 from backend.detectors.registry import DetectorRegistry
 

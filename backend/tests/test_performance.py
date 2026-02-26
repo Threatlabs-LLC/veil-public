@@ -9,7 +9,6 @@ Measures:
 """
 
 import time
-import pytest
 
 from backend.detectors.regex_detector import RegexDetector
 from backend.detectors.registry import create_default_registry

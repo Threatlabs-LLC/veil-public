@@ -1,9 +1,7 @@
 """API integration tests — auth, rules, policies, settings, admin."""
 
-import pytest
 
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from httpx import AsyncClient
 
 
 # ── Helper ─────────────────────────────────────────────────────────────
@@ -35,7 +33,6 @@ async def _upgrade_org_tier(client: AsyncClient, token: str, tier: str = "team")
         gen = override()
         db = await gen.__anext__()
         try:
-            from sqlalchemy import select
             from backend.models.user import User
             from backend.models.organization import Organization
             from jose import jwt

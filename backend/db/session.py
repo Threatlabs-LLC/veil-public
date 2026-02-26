@@ -23,7 +23,7 @@ async def init_db():
 
     if "sqlite" in settings.database_url:
         # Enable WAL mode and other SQLite pragmas
-        from sqlalchemy import event, text
+        from sqlalchemy import event
 
         @event.listens_for(engine.sync_engine, "connect")
         def set_sqlite_pragma(dbapi_conn, connection_record):

@@ -2,13 +2,11 @@
 
 import json
 
-import pytest
 
 from backend.core.normalizer import normalize_entity
-from backend.core.mapper import EntityMapper, MappedEntity
+from backend.core.mapper import EntityMapper
 from backend.core.rehydrator import Rehydrator
-from backend.core.sanitizer import Sanitizer, SanitizationResult
-from backend.detectors.base import DetectedEntity
+from backend.core.sanitizer import Sanitizer
 from backend.detectors.regex_detector import RegexDetector
 from backend.detectors.registry import DetectorRegistry
 

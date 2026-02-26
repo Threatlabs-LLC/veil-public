@@ -15,7 +15,6 @@ from backend.core.document import (
     ExtractionError,
     extract_text,
     SUPPORTED_EXTENSIONS,
-    MAX_FILE_SIZE_BYTES,
 )
 from backend.core.mapper import EntityMapper
 from backend.core.sanitizer import Sanitizer

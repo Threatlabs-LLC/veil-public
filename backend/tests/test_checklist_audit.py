@@ -385,7 +385,7 @@ class TestAdversarialBypass:
         """Unicode fullwidth characters in email — likely won't match."""
         # Fullwidth "ｊｏｈｎ@ｅｘａｍｐｌｅ.ｃｏｍ" — these are different Unicode codepoints
         text = "Contact \uff4a\uff4f\uff48\uff4e@example.com"
-        result = self.s.sanitize(text)
+        _result = self.s.sanitize(text)
         # The domain part is normal ASCII so partial match is possible
         # This is a KNOWN limitation — document it
 
@@ -393,7 +393,7 @@ class TestAdversarialBypass:
         """Zero-width characters inserted into SSN."""
         # Insert zero-width space (U+200B) between digits
         ssn_with_zwsp = "123\u200b-45\u200b-6789"
-        result = self.s.sanitize(f"SSN: {ssn_with_zwsp}")
+        _result = self.s.sanitize(f"SSN: {ssn_with_zwsp}")
         # This is a KNOWN gap — zero-width chars break regex patterns
         # Document as limitation
 

@@ -38,7 +38,7 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check backend/ --select E,F,W --ignore E402,E501
+        run: ruff check backend/ --select E,F,W --ignore E402,E501,E712
 
       - name: Run tests
         run: python -m pytest backend/tests/ -v --tb=short

@@ -64,7 +64,7 @@ def generate_keys(output_dir: str) -> None:
         )
     )
 
-    print(f"Keys generated:")
+    print("Keys generated:")
     print(f"  Private key: {private_path}  (KEEP SECRET — never commit or ship)")
     print(f"  Public key:  {public_path}  (safe to distribute with Docker image)")
 

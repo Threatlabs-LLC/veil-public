@@ -1,7 +1,6 @@
 """Tests for the shared state store (in-memory fallback)."""
 
 import time
-from unittest.mock import patch
 
 from backend.core import state_store
 
