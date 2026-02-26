@@ -2,10 +2,10 @@ MASTER SERVICES AGREEMENT
 
 This Agreement is entered into as of February 1, 2026, by and between:
 
-PROVIDER: Threatlabs LLC, a Delaware limited liability company
+PROVIDER: Northgate Solutions LLC, a Delaware limited liability company
 Address: 1234 Innovation Drive, Suite 500, Austin, TX 78701
 EIN: 84-3298471
-Contact: Cory Brown, CEO, cory.brown@threatlabs.tech, (512) 555-3847
+Contact: Daniel Reeves, CEO, d.reeves@northgatesolutions.com, (512) 555-3847
 
 CLIENT: Meridian Healthcare Systems Inc., a California corporation
 Address: 8900 Wilshire Boulevard, Floor 12, Beverly Hills, CA 90211
@@ -22,7 +22,7 @@ ARTICLE 3 — PAYMENT TERMS
     Account: 3300194827
     Reference: MSA-2026-MHCS
 
-3.3 Late payment contact: accounts@threatlabs.tech
+3.3 Late payment contact: accounts@northgatesolutions.com
 
 ARTICLE 5 — DATA PROTECTION
 5.1 Provider shall not access, store, or process any Protected Health Information (PHI) as defined under HIPAA.
@@ -31,9 +31,9 @@ ARTICLE 5 — DATA PROTECTION
 
 ARTICLE 8 — AUTHORIZED REPRESENTATIVES
 For Provider:
-  Name: Cory Brown
+  Name: Daniel Reeves
   Title: CEO
-  Email: cory.brown@threatlabs.tech
+  Email: d.reeves@northgatesolutions.com
   SSN (for IRS W-9): 478-92-1034
 
 For Client:

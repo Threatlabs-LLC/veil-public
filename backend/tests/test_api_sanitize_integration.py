@@ -189,11 +189,11 @@ class TestAPILegal:
         "84-3298471",
         "95-4872103",
         # Emails
-        "cory.brown@threatlabs.tech",
+        "d.reeves@northgatesolutions.com",
         "p.dominguez@meridianhcs.com",
         "j.whitfield@meridianhcs.com",
         "security@meridianhcs.com",
-        "accounts@threatlabs.tech",
+        "accounts@northgatesolutions.com",
         "tadeyemi@legalteam.com",
         # Phones
         "(512) 555-3847",
